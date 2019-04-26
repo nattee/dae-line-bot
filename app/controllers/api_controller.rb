@@ -8,6 +8,10 @@ class ApiController < ApplicationController
   def test
   end
 
+  def get_callback
+    render plain: "OK", content_type: 'text/plain'
+  end
+
   def callback
     body = request.body.read
 
