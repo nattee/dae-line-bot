@@ -1,0 +1,31 @@
+syntax: glob
+
+# ignore orig, swp
+*.orig
+*.swp
+
+# Ignore bundler config.
+.bundle
+
+# Ignore the default SQLite database.
+db/*.sqlite3
+db/*.sqlite3-journal
+
+# Ignore all logfiles and tempfiles.
+log/*
+tmp/*
+
+# Ignore uploaded files in development
+storage/*
+
+node_modules
+yarn-error.log
+
+public/assets
+.byebug_history
+
+# Ignore master key for decrypting credentials and more.
+config/master.key
+
+# ignore secret
+config/secrets.yml
