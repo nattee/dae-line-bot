@@ -30,12 +30,14 @@ module Dae
       t = remaining_time_in_minutes
       d = remaining_dist_in_km(text)
       return nil unless d && d.is_a?(Numeric)
+      d_text = sprintf("%.2f",d)
       pace = t/d
       a = <<~EOS
       เหลือเวลา #{t} นาที
-      เหลือระยะทาง #{d} โล
+      เหลือระยะทาง #{d_text} โล
       ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
       EOS
+      return a
     end
 
     def pace_text(pace)

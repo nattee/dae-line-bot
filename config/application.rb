@@ -17,5 +17,6 @@ module DaeLineBot
     # the framework and any gems in your application.
     config.autoload_paths += %W(#{config.root}/lib) # add this line
     config.time_zone = "Asia/Bangkok"
+    config.eager_load_paths << Rails.root.join('lib')
   end
 end
