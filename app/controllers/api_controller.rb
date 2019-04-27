@@ -27,29 +27,11 @@ class ApiController < ApplicationController
       when Line::Bot::Event::Message
         case event.type
         when Line::Bot::Event::MessageType::Text
-          user_text = event.message['text']
-          running = Dae::Running.new
-          result = running.process_text(user_text)
-          if result
-            profile_resp = @client.get_profile(event['source']['userId'])
-            hash = JSON.parse profile_resp.body
-            user_name = hash['displayName'] || 'ไม่ได้แอดผมเป็นเพื่อน ผมเลยไม่รู้จักชื่อคุณ'
-
-            #if user does not befriend the bot, hash['displayName'] will be nil (and make everyting failed... returning nil)
-            reply_text = user_name+"\n"+result
-          else
-            reply_text = 'ไม่รู้เรื่อง'
-          end
-          #build reply
-          message = {
-            type: 'text',
-            text: reply_text
-          }
-          @client.reply_message(event['replyToken'], message) if result
+          Dae::Running.new.respond_to(event,@client)
         when Line::Bot::Event::MessageType::Image, Line::Bot::Event::MessageType::Video
-          response = @client.get_message_content(event.message['id'])
-          tf = Tempfile.open("content")
-          tf.write(response.body)
+          #response = @client.get_message_content(event.message['id'])
+          #f = Tempfile.open("content")
+          #f.write(response.body)
         end
       end
     }
