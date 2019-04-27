@@ -23,7 +23,7 @@ module Dae
       user_text = event.message['text']
       result = process_text(user_text)
       if result
-        profile_resp = @client.get_profile(event['source']['userId'])
+        profile_resp = client.get_profile(event['source']['userId'])
         hash = JSON.parse profile_resp.body
         user_name = hash['displayName'] || 'ไม่ได้แอดผมเป็นเพื่อน ผมเลยไม่รู้จักชื่อคุณ'
 
