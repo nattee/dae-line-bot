@@ -65,21 +65,26 @@ module Dae
       read_end_time
       t = remaining_time_in_minutes
       d = remaining_dist_in_km(text)
-      return nil unless d && d.is_a?(Numeric)
-      return 'ครบแล้วครับพี่!!!! พอเหอะ' if d <= 0
-      d_text = sprintf("%.2f",d)
-      pace = t/d
-      a = <<~EOS
-      เหลือเวลา #{t} นาที
-      เหลือระยะทาง #{d_text} โล
-      ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
-      EOS
-      return a
+
+      if d && d.is_a?(Numeric)
+        return 'ครบแล้วครับพี่!!!! พอเหอะ' if d <= 0
+
+        d_text = sprintf("%.2f",d)
+        pace = t/d
+        a = <<~EOS
+        เหลือเวลา #{t} นาที
+        เหลือระยะทาง #{d_text} โล
+        ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
+        EOS
+        return a
+      end
+
+      return funny_response(text)
     end
 
     def special_command(text)
       case text.strip
-      when /^ท่านเมียสั่ง setend (.*)$/
+      when /^ท่านเมียสั่ง! setend (.*)$/
         t = Time.parse("2019-04-28 #{$1} +0700")
         set_end_time(t)
         return "ตั้งเวลาจบการวิ่งเป็น #{t.to_s}"
@@ -91,6 +96,17 @@ module Dae
       frac = (pace - pace.to_i).abs
       sec = frac * 60
       return sprintf("%d:%02d",pace.to_i,sec)
+    end
+
+    def funny_response(text)
+      case text.strip
+      when /^หิวมั้ย$/
+        return 'หิวมาก พร้อมโหลด'
+      when /^ฝากแด้$/
+        return 'คร้าบบบบ????'
+      end
+      return nil
+
     end
   end
 end
