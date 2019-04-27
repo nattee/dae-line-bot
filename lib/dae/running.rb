@@ -13,9 +13,9 @@ module Dae
 
     def remaining_dist_in_km(text)
       case text.strip
-      when /([0-9\.]+)\s*(km|โล|k)$/
+      when /^([0-9\.]+)\s*(km|โล|k)$/
         my_dist = $1.to_f
-      when /([0-9\.]+)\s*(รอบ)$/
+      when /^([0-9\.]+)\s*(รอบ)$/
         puts $1
         my_lap = $1.to_f
         my_dist = my_lap * @lap_dist

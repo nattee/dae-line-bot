@@ -33,7 +33,10 @@ class ApiController < ApplicationController
           if result
             profile_resp = @client.get_profile(event['source']['userId'])
             hash = JSON.parse profile_resp.body
-            reply_text = hash['displayName']+"\n"+result
+            user_name = hash['displayName'] || 'ไม่ได้แอดผมเป็นเพื่อน ผมเลยไม่รู้จักชื่อคุณ'
+
+            #if user does not befriend the bot, hash['displayName'] will be nil (and make everyting failed... returning nil)
+            reply_text = user_name+"\n"+result
           else
             reply_text = 'ไม่รู้เรื่อง'
           end
