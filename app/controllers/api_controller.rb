@@ -27,9 +27,18 @@ class ApiController < ApplicationController
       when Line::Bot::Event::Message
         case event.type
         when Line::Bot::Event::MessageType::Text
+          user_text = event.message['text']
+          running = Dae::Running.new
+          result = running.process_text(user_text)
+          if result
+            reply_text = result
+          else
+            reply_text = 'ไม่รู้เรื่อง'
+          end
+          #build reply
           message = {
             type: 'text',
-            text: event.message['text']
+            text: reply_text
           }
           @client.reply_message(event['replyToken'], message)
         when Line::Bot::Event::MessageType::Image, Line::Bot::Event::MessageType::Video
