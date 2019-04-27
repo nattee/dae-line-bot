@@ -67,7 +67,7 @@ module Dae
       d = remaining_dist_in_km(text)
 
       if d && d.is_a?(Numeric)
-        return 'ครบแล้วครับพี่!!!! พอเหอะ' if d <= 0
+        return 'ครบแล้วครับพี่!!!! จัดไปให้ติด top10!!! OSK ต้องไว้ลาย' if d <= 0
 
         d_text = sprintf("%.2f",d)
         pace = t/d
