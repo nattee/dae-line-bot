@@ -31,7 +31,9 @@ class ApiController < ApplicationController
           running = Dae::Running.new
           result = running.process_text(user_text)
           if result
-            reply_text = result
+            profile_resp = @client.get_profile(event['source']['userId'])
+            hash = JSON.parse profile_resp.body
+            reply_text = hash['displayName']+"\n"+result
           else
             reply_text = 'ไม่รู้เรื่อง'
           end
