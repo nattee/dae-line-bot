@@ -31,10 +31,11 @@ module Dae
       d = remaining_dist_in_km(text)
       return nil unless d && d.is_a?(Numeric)
       pace = t/d
-      %Q{เหลือเวลา #{t}
-      เหลือระยะทาง #{d}
-      ต้องวิ่งเพซ #{pace_text(pace)}
-      }
+      a = <<~EOS
+      เหลือเวลา #{t} นาที
+      เหลือระยะทาง #{d} โล
+      ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
+      EOS
     end
 
     def pace_text(pace)
