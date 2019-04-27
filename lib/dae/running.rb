@@ -1,7 +1,7 @@
 module Dae
   class Running
     def initialize(end_time = nil)
-      @end_time = end_time || Time.parse('2019-04-28 16:00:00 +0700')
+      @end_time = end_time || Time.parse('2019-04-28 15:45:00 +0700')
       @total_dist = 63.0
       @total_lap = 20.0
       @lap_dist = 2.1
@@ -13,9 +13,9 @@ module Dae
 
     def remaining_dist_in_km(text)
       case text.strip
-      when /([0-9\.]+)\s*(km|โล)/
+      when /([0-9\.]+)\s*(km|โล|k)$/
         my_dist = $1.to_f
-      when /([0-9\.]+)\s*(รอบ)/
+      when /([0-9\.]+)\s*(รอบ)$/
         puts $1
         my_lap = $1.to_f
         my_dist = my_lap * @lap_dist
@@ -30,6 +30,8 @@ module Dae
       t = remaining_time_in_minutes
       d = remaining_dist_in_km(text)
       return nil unless d && d.is_a?(Numeric)
+
+      return 'ครบแล้วครับพี่!!!! พอเหอะ' if d <= 0
       d_text = sprintf("%.2f",d)
       pace = t/d
       a = <<~EOS
