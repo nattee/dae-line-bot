@@ -1,0 +1,24 @@
+%p#notice= notice
+
+%p
+  %b Run:
+  = @checkin.run
+%p
+  %b Distance:
+  = @checkin.distance
+%p
+  %b Time:
+  = @checkin.time
+%p
+  %b Type:
+  = @checkin.type
+%p
+  %b Location:
+  = @checkin.location
+%p
+  %b Remark:
+  = @checkin.remark
+
+= link_to 'Edit', edit_checkin_path(@checkin)
+\|
+= link_to 'Back', checkins_path

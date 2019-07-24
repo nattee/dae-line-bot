@@ -1,5 +1,5 @@
 module Dae
-  class Running
+  class RunningCM62019
     def initialize(end_time = nil)
       @end_time = end_time || Time.parse('2019-04-28 15:45:00 +0700')
       @total_dist = 63.0
@@ -7,20 +7,15 @@ module Dae
       @lap_dist = 2.1
     end
 
-    def read_end_time
-      p = Parameter.find(1)
-      @end_time = Time.parse(p.value)
-    end
-
-    def set_end_time(time)
-      p = Parameter.find_or_initialize_by(id: 1)
-      p.value = time.in_time_zone.to_s
-      p.save
-    end
-
+    #main callback function
     def respond_to(event,client)
+      #check if the user is a friend
+      unless client_is_friend(event,client)
+      end
 
       user_text = event.message['text']
+
+
       result = process_text(user_text)
       if result
         profile_resp = client.get_profile(event['source']['userId'])
@@ -37,6 +32,18 @@ module Dae
         }
         client.reply_message(event['replyToken'], message) if result
       end
+    end
+
+
+    def read_end_time
+      p = Parameter.find(1)
+      @end_time = Time.parse(p.value)
+    end
+
+    def set_end_time(time)
+      p = Parameter.find_or_initialize_by(id: 1)
+      p.value = time.in_time_zone.to_s
+      p.save
     end
 
     def remaining_time_in_minutes

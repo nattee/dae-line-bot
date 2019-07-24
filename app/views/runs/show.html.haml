@@ -1,0 +1,21 @@
+%p#notice= notice
+
+%p
+  %b Athlete:
+  = @run.athlete
+%p
+  %b Bib:
+  = @run.bib
+%p
+  %b Course:
+  = @run.course
+%p
+  %b Current dist:
+  = @run.current_dist
+%p
+  %b Status:
+  = @run.status
+
+= link_to 'Edit', edit_run_path(@run)
+\|
+= link_to 'Back', runs_path

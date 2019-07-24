@@ -1,0 +1,29 @@
+%h1 Listing runs
+
+%table
+  %thead
+    %tr
+      %th Athlete
+      %th Bib
+      %th Course
+      %th Current dist
+      %th Status
+      %th
+      %th
+      %th
+
+  %tbody
+    - @runs.each do |run|
+      %tr
+        %td= run.athlete
+        %td= run.bib
+        %td= run.course
+        %td= run.current_dist
+        %td= run.status
+        %td= link_to 'Show', run
+        %td= link_to 'Edit', edit_run_path(run)
+        %td= link_to 'Destroy', run, method: :delete, data: { confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Run', new_run_path

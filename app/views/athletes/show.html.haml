@@ -1,0 +1,15 @@
+%p#notice= notice
+
+%p
+  %b Name:
+  = @athlete.name
+%p
+  %b Line:
+  = @athlete.line_id
+%p
+  %b Line name:
+  = @athlete.line_name
+
+= link_to 'Edit', edit_athlete_path(@athlete)
+\|
+= link_to 'Back', athletes_path

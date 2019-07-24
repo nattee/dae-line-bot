@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  athlete: one
+  bib: MyString
+  course: one
+  current_dist: 1.5
+  status: MyString
+
+two:
+  athlete: two
+  bib: MyString
+  course: two
+  current_dist: 1.5
+  status: MyString

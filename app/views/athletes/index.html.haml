@@ -1,0 +1,25 @@
+%h1 Listing athletes
+
+%table
+  %thead
+    %tr
+      %th Name
+      %th Line
+      %th Line name
+      %th
+      %th
+      %th
+
+  %tbody
+    - @athletes.each do |athlete|
+      %tr
+        %td= athlete.name
+        %td= athlete.line_id
+        %td= athlete.line_name
+        %td= link_to 'Show', athlete
+        %td= link_to 'Edit', edit_athlete_path(athlete)
+        %td= link_to 'Destroy', athlete, method: :delete, data: { confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Athlete', new_athlete_path

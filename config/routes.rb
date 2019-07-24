@@ -1,4 +1,8 @@
 Rails.application.routes.draw do
+  resources :checkins
+  resources :runs
+  resources :athletes
+  resources :courses
   resources :races
   get 'api/callback', to: 'api#get_callback'
   post 'api/callback'

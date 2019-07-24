@@ -1,0 +1,31 @@
+%h1 Listing checkins
+
+%table
+  %thead
+    %tr
+      %th Run
+      %th Distance
+      %th Time
+      %th Type
+      %th Location
+      %th Remark
+      %th
+      %th
+      %th
+
+  %tbody
+    - @checkins.each do |checkin|
+      %tr
+        %td= checkin.run
+        %td= checkin.distance
+        %td= checkin.time
+        %td= checkin.type
+        %td= checkin.location
+        %td= checkin.remark
+        %td= link_to 'Show', checkin
+        %td= link_to 'Edit', edit_checkin_path(checkin)
+        %td= link_to 'Destroy', checkin, method: :delete, data: { confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Checkin', new_checkin_path
