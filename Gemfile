@@ -52,6 +52,8 @@ gem 'haml-rails'
 
 gem 'jquery-datatables'
 gem 'select2-rails'
+
+gem 'bootstrap'
 #---------------- end dae -------------------------------
 
 group :development, :test do

@@ -12,15 +12,18 @@ class ApiController < ApplicationController
     render plain: "OK", content_type: 'text/plain'
   end
 
+  #this is my default callback
   def callback
     body = request.body.read
 
+    #validate signature
     signature = request.env['HTTP_X_LINE_SIGNATURE']
     unless @client.validate_signature(body, signature)
       render plain: "Bad Request", content_type: 'text/plain', status: 400
       return
     end
 
+    #parse event
     events = @client.parse_events_from(body)
     events.each { |event|
       case event
