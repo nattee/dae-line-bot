@@ -27,6 +27,8 @@ class ApiController < ApplicationController
     events = @client.parse_events_from(body)
     events.each { |event|
       case event
+
+      #process Message event
       when Line::Bot::Event::Message
         case event.type
         when Line::Bot::Event::MessageType::Text
@@ -37,6 +39,8 @@ class ApiController < ApplicationController
           #f = Tempfile.open("content")
           #f.write(response.body)
         end
+      else
+        #for other event type (follow, join, beacon, etc.. we won't do anything
       end
     }
 

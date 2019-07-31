@@ -9,32 +9,24 @@ module Dae
 
     #main callback function
     def respond_to(event,client)
-      #check if the user is a friend
-      unless client_is_friend(event,client)
-        client.reply_message(event['replyToken'], @message) if result
+      @message = {
+        type: 'text',
+        text: ''
+      }
+
+      #check if it is a direct message or a mention in a group
+      unless mentioned?(event.message['text']) || event.source[:type] == 'user'
+        @message[:text] = 'i will not response'
+        client.reply_message(event['replyToken'], @message)
         return
       end
 
-      user_text = event.message['text']
-      puts event
 
-      result = process_text(user_text)
-      if result
-        profile_resp = client.get_profile(event['source']['userId'])
-        hash = JSON.parse profile_resp.body
-        user_name = hash['displayName']
-
-        reply_text = user_name+"\n"+result
-
-        #build reply and response
-        message = {
-          type: 'text',
-          text: reply_text
-        }
-        client.reply_message(event['replyToken'], message)
+      if process_text(event.message['text'])
+        @message[:text] =  @sender_name+"\n"+result
+        client.reply_message(event['replyToken'], @message)
       end
     end
-
 
     def read_end_time
       p = Parameter.find(1)
@@ -119,7 +111,19 @@ module Dae
     def client_is_friend(event,client)
       profile_resp = client.get_profile(event['source']['userId'])
       hash = JSON.parse profile_resp.body
-      return hash['displayName'].nil? == false
+      @sender_name = hash['displayName']
+      if @sender_name.nil? 
+        @message[:text] = 'ไม่ได้แอดผมเป็นเพื่อน ผมเลยไม่รู้จักชื่อคุณ ช่วยแอดผมเป็นเพื่อนก่อนนะครับ'
+        return false
+      else
+        return true
+      end
     end
+
+    def mentioned?(body)
+      return body.include? "@ฝากแด้"
+    end
+
+
   end
 end
