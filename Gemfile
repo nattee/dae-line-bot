@@ -54,6 +54,8 @@ gem 'jquery-datatables'
 gem 'select2-rails'
 
 gem 'bootstrap'
+
+gem 'rest-client'
 #---------------- end dae -------------------------------
 
 group :development, :test do

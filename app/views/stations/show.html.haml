@@ -1,0 +1,24 @@
+%p#notice= notice
+
+%p
+  %b Course:
+  = @station.course
+%p
+  %b Code:
+  = @station.code
+%p
+  %b Shortname:
+  = @station.shortname
+%p
+  %b Name:
+  = @station.name
+%p
+  %b Distance:
+  = @station.distance
+%p
+  %b Cutoff:
+  = @station.cutoff
+
+= link_to 'Edit', edit_station_path(@station)
+\|
+= link_to 'Back', stations_path

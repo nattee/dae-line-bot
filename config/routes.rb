@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :stations
   resources :checkins
   resources :runs
   resources :athletes

@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  course: one
+  code: MyString
+  shortname: MyString
+  name: MyString
+  distance: 1.5
+  cutoff: 2019-08-01 00:14:51
+
+two:
+  course: two
+  code: MyString
+  shortname: MyString
+  name: MyString
+  distance: 1.5
+  cutoff: 2019-08-01 00:14:51
