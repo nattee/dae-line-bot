@@ -89,10 +89,10 @@ module Dae
         runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
         Run.where(athlete: runner).each do |run|
           #find next station,cutoff, etc
-          next_station = nil
           next_cutoff = nil
           cutoff_dist = nil
           cutoff_station = nil
+          station_code = nil
           run.course.stations.order('distance').each do |station|
             puts "#{station.code} #{station.distance}"
             next if station.distance <= dist
@@ -101,24 +101,34 @@ module Dae
               next_cutoff = station.cutoff
               cutoff_dist = station.distance
               cutoff_station = "#{station.code} #{station.name}"
+              station_code = station.code
               break
             end
           end
 
-          #calculate
-          d = cutoff_dist - dist
-          t = remaining_time_in_minutes(next_cutoff)
-          d_text = sprintf("%.2f",d)
-          pace = t/d
+          if next_cutoff
+            #calculate
+            d = cutoff_dist - dist
+            t = remaining_time_in_minutes(next_cutoff)
+            d_text = sprintf("%.2f",d)
+            pace = t/d
 
-          #response
-          @message[:text] = <<~EOS
-          cutoff ต่อไปที่ #{cutoff_station} ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
-          เหลือเวลา #{t} นาที
-          เหลือระยะทาง #{d_text} โล
-          ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
-          สู้ ๆ
-          EOS
+            run.station = station_code
+            run.current_dist = dist
+            run.save
+
+            #response
+            @message[:text] = <<~EOS
+            cutoff ต่อไปที่ #{cutoff_station} ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
+            เหลือเวลา #{t} นาที
+            เหลือระยะทาง #{d_text} โล
+            ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
+            สู้ ๆ
+            EOS
+          else
+            @message[:text] = "จบแล้ว!!! เยี่ยมมากครับ"
+          end
+
         end
       end
       return true
@@ -186,23 +196,24 @@ module Dae
         last_station = 'hahaha'
         Run.where(course: course).order('current_dist').each.with_index do |run,j|
           #display course name
-          resp += course.title + ":\n" if j == 0
+          resp += course.title + "" if j == 0
 
           #display station name
           if last_station != run.station
             last_station = run.station
             if last_station.nil? || last_station.empty?
-              resp += "ยังไม่เริ่ม: "
+              resp += "\nยังไม่เริ่ม: "
             else
-              resp += "ผ่าน#{last_station}แล้ว: "
+              resp += "\nผ่าน #{last_station} แล้ว: "
             end
+          else
+            resp += ','
           end
 
-          resp += ',' if j != 0
           resp += " #{run.athlete.line_name}"
           has_runner = true
         end
-        resp += "\n" if has_runner
+        resp += "\n\n" if has_runner
       end
 
       @message[:text] = resp
