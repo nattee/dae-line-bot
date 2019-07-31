@@ -107,12 +107,12 @@ module Dae
 
     def show_update
       resp = ""
-      Course.where(race_id: 1).all.each do |course|
-        Run.where(course: course).each.with_index do |run,i|
-          resp += course.title + ":\n" if i == 0
+      Course.where(race_id: 1).all.each.with_index do |course,i|
+        Run.where(course: course).each.with_index do |run,j|
+          resp += "\n" if i > 0
+          resp += course.title + ":\n" if j == 0
           resp += "#{run.athlete.line_name} #{run.bib}\n"
         end
-        resp += "\n"
       end
 
 
