@@ -114,7 +114,12 @@ module Dae
         return 'คร้าบบบบ????'
       end
       return nil
+    end
 
+    def client_is_friend(event,client)
+      profile_resp = client.get_profile(event['source']['userId'])
+      hash = JSON.parse profile_resp.body
+      return hash['displayName'].nil? == false
     end
   end
 end
