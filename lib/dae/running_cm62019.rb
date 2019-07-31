@@ -88,7 +88,7 @@ module Dae
         course = Course.where(title: course_name).first
         unless course
           @message[:text] = "#{@sender_name} ไม่รู้จักงาน #{course_name}"
-          return false
+          return true
         end
 
         puts @event
@@ -99,20 +99,23 @@ module Dae
         run.bib = bib
         run.save
 
-        @message[:text] = "OK #{@sende_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance} ด้วยหมายเลข #{bib} #{encourage_text}"
-        return true
+        @message[:text] = "OK พี่#{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
+      else
+        #response with default non-friend
       end
-      return false
+      return true
     end
 
     def show_update
       resp = ""
       Course.where(race_id: 1).all.each.with_index do |course,i|
+        has_runner = false
         Run.where(course: course).each.with_index do |run,j|
-          resp += "\n" if i > 0
           resp += course.title + ":\n" if j == 0
           resp += "#{run.athlete.line_name} #{run.bib}\n"
+          has_runner = true
         end
+        resp += "\n" if has_runner
       end
 
 
@@ -132,8 +135,9 @@ module Dae
       when /^หิวมั้ย$/
         @message[:text] = 'หิวมาก พร้อมโหลด'
         return true
-      when /^ฝากแด้$/
-        @message[:text] = 'คร้าบบบบ????'
+      when /^ฝากแด้$/, /^@ฝากแด้$/
+        resp = ['คร้าบบบบ???'], ['อิหยัง?'], ['มีไรให้รับใช้ครับ']
+        @message[:text] = resp.sample
         return true
       end
       return false
