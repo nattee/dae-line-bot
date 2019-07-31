@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_07_24_125011) do
+ActiveRecord::Schema.define(version: 2019_07_31_105606) do
 
   create_table "athletes", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "name"
@@ -40,6 +40,7 @@ ActiveRecord::Schema.define(version: 2019_07_24_125011) do
     t.datetime "stop"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.float "gain"
     t.index ["race_id"], name: "index_courses_on_race_id"
   end
 

@@ -1,5 +1,6 @@
 module Dae
   class RunningCM62019
+    ENCOURAGE_TEXT = ['สู้ ๆ ครับ', 'ขอให้จบสวย ๆ', 'สบาย ๆ ระดับนี้แล้ว', 'วิ่งให้สนุกครับ!']
     def initialize(end_time = nil)
       @end_time = end_time || Time.parse('2019-04-28 15:45:00 +0700')
       @total_dist = 63.0
@@ -13,18 +14,11 @@ module Dae
         type: 'text',
         text: ''
       }
+      @event = event
+      @client = client
 
-      #check if it is a direct message or a mention in a group
-      unless mentioned?(event.message['text']) || event.source[:type] == 'user'
-        @message[:text] = 'i will not response'
-        client.reply_message(event['replyToken'], @message)
-        return
-      end
-
-
-      if process_text(event.message['text'])
-        @message[:text] =  @sender_name+"\n"+result
-        client.reply_message(event['replyToken'], @message)
+      if process_text
+        @client.reply_message(event['replyToken'], @message)
       end
     end
 
@@ -58,28 +52,20 @@ module Dae
       return remain
     end
 
-    def process_text(text)
-      r = special_command(text)
-      return r + "\n" + 'รับทราบ ปฏิบัติ!!!' if r
+    def process_text
+      text = @event.message['text']
+      return true if special_command(text)
 
-      read_end_time
-      t = remaining_time_in_minutes
-      d = remaining_dist_in_km(text)
-
-      if d && d.is_a?(Numeric)
-        return 'ครบแล้วครับพี่!!!! จัดไปให้ติด top10!!! OSK ต้องไว้ลาย' if d <= 0
-
-        d_text = sprintf("%.2f",d)
-        pace = t/d
-        a = <<~EOS
-        เหลือเวลา #{t} นาที
-        เหลือระยะทาง #{d_text} โล
-        ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
-        EOS
-        return a
+      case text.strip
+      when /^ลงทะเบียน (CM[1-6]) bib (\w{,10})/
+        return register($1,$2)
+      when /^update cm6/i
+        return show_update
+      else
+        return true if funny_response(text)
       end
 
-      return funny_response(text)
+      return false
     end
 
     def special_command(text)
@@ -87,9 +73,52 @@ module Dae
       when /^ท่านเมียสั่ง! setend (.*)$/
         t = Time.parse("2019-04-28 #{$1} +0700")
         set_end_time(t)
-        return "ตั้งเวลาจบการวิ่งเป็น #{t.to_s}"
+        make_special_response("ตั้งเวลาจบการวิ่งเป็น #{t.to_s}")
+        return true
       end
-      return nil
+      return false
+    end
+
+    def make_special_response(text)
+      @message[:text] = "#{text} \nรับทราบ ปฏิบัติ!!!"
+    end
+
+    def register(course_name,bib)
+      if client_is_friend?
+        course = Course.where(title: course_name).first
+        unless course
+          @message[:text] = "#{@sender_name} ไม่รู้จักงาน #{course_name}"
+          return false
+        end
+
+        puts @event
+        runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
+        runner.line_name = @sender_name
+        runner.save
+        run = Run.find_or_create_by(athlete: runner,course: course)
+        run.bib = bib
+        run.save
+
+        @message[:text] = "OK #{@sende_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance} ด้วยหมายเลข #{bib} #{encourage_text}"
+        return true
+      end
+      return false
+    end
+
+    def show_update
+      resp = ""
+      Course.where(race_id: 1).all.each do |course|
+        Run.where(course: course).each.with_index do |run,i|
+          resp += course.title + ":\n" if i == 0
+          resp += "#{run.athlete.line_name} #{run.bib}\n"
+        end
+        resp += "\n"
+      end
+
+
+      @message[:text] = resp
+      return true
+
     end
 
     def pace_text(pace)
@@ -101,18 +130,20 @@ module Dae
     def funny_response(text)
       case text.strip
       when /^หิวมั้ย$/
-        return 'หิวมาก พร้อมโหลด'
+        @message[:text] = 'หิวมาก พร้อมโหลด'
+        return true
       when /^ฝากแด้$/
-        return 'คร้าบบบบ????'
+        @message[:text] = 'คร้าบบบบ????'
+        return true
       end
-      return nil
+      return false
     end
 
-    def client_is_friend(event,client)
-      profile_resp = client.get_profile(event['source']['userId'])
+    def client_is_friend?
+      profile_resp = @client.get_profile(@event['source']['userId'])
       hash = JSON.parse profile_resp.body
       @sender_name = hash['displayName']
-      if @sender_name.nil? 
+      if @sender_name.nil?
         @message[:text] = 'ไม่ได้แอดผมเป็นเพื่อน ผมเลยไม่รู้จักชื่อคุณ ช่วยแอดผมเป็นเพื่อนก่อนนะครับ'
         return false
       else
@@ -120,10 +151,10 @@ module Dae
       end
     end
 
-    def mentioned?(body)
-      return body.include? "@ฝากแด้"
-    end
+    def encourage_text
+      return ENCOURAGE_TEXT.sample
 
+    end
 
   end
 end
