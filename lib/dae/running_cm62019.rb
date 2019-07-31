@@ -135,9 +135,12 @@ module Dae
       when /^หิวมั้ย$/
         @message[:text] = 'หิวมาก พร้อมโหลด'
         return true
-      when /^ฝากแด้$/, /^@ฝากแด้$/
-        resp = ['คร้าบบบบ???'], ['อิหยัง?'], ['มีไรให้รับใช้ครับ']
-        @message[:text] = resp.sample
+      when /^@{0,1}ฝากแด้$/
+        if client_is_friend?
+          resp = ['คร้าบบบบ???', 'อิหยัง?', 'มีไรให้รับใช้ครับ']
+          @message[:text] = resp.sample + " พี่ @#{@sender_name}"
+        else
+        end
         return true
       end
       return false
