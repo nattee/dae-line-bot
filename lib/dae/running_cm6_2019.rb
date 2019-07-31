@@ -11,18 +11,19 @@ module Dae
     def respond_to(event,client)
       #check if the user is a friend
       unless client_is_friend(event,client)
+        client.reply_message(event['replyToken'], @message) if result
+        return
       end
 
       user_text = event.message['text']
-
+      puts event
 
       result = process_text(user_text)
       if result
         profile_resp = client.get_profile(event['source']['userId'])
         hash = JSON.parse profile_resp.body
-        user_name = hash['displayName'] || 'ไม่ได้แอดผมเป็นเพื่อน ผมเลยไม่รู้จักชื่อคุณ ช่วยแอดผมเป็นเพื่อนก่อนนะครับ'
+        user_name = hash['displayName']
 
-        #if user does not befriend the bot, hash['displayName'] will be nil (and make everyting failed... returning nil)
         reply_text = user_name+"\n"+result
 
         #build reply and response
@@ -30,7 +31,7 @@ module Dae
           type: 'text',
           text: reply_text
         }
-        client.reply_message(event['replyToken'], message) if result
+        client.reply_message(event['replyToken'], message)
       end
     end
 
