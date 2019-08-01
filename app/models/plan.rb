@@ -3,7 +3,7 @@ class Plan < ApplicationRecord
   belongs_to :station
 
   def summary_text
-    return "จาก #{station.code} ระยะทาง #{sprintf("%.1f",dist)} gain #{station.ascent} loss #{station.descent} pace #{pace} เวลารวม #{min_to_human(total_minute)} เวลาถึงเป้าหมาย #{cm6_time(worldtime)} (#{margin_text})"
+    return "ถึง #{station.code} ระยะทาง #{sprintf("%.1f",dist)} gain #{station.ascent} loss #{station.descent} pace #{pace} เวลารวม #{min_to_human(total_minute)} เวลาถึงเป้าหมาย #{cm6_time(worldtime)} (#{margin_text})"
   end
 
   def margin_text

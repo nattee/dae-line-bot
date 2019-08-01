@@ -46,8 +46,10 @@ module Dae
         return dist_update(my_dist)
       when /^map/i
         return show_map
+      when /^plan text/i
+        return show_plan_text
       when /^plan/i
-        return show_plan
+        return show_plan_pic
       else
         return funny_response(text)
       end
@@ -90,9 +92,9 @@ module Dae
         #set plans
         run.plans.destroy_all
         if target
-          if target
-            @message[:text] += "\n\nแผน #{target} ชั่วโมง\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
-          end
+          @message[:text] += "\n\nแผน #{target} ชั่วโมง\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
+          run.plan_hour = target
+          run.save
           chilling_trail_update_plan(runner,course,target)
         end
       else
@@ -141,7 +143,7 @@ module Dae
       return true
     end
 
-    def show_plan
+    def show_plan_text
       if client_is_friend?
         runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
 
@@ -157,6 +159,34 @@ module Dae
             resp += plan.summary_text + "\n\n"
           end
           @message[:text] = resp
+        end
+      end
+      return true
+    end
+
+    def show_plan_pic
+      if client_is_friend?
+        runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
+
+        return true unless registered?
+
+        Run.where(athlete: runner).each do |run|
+          if run.plans.count == 0
+            @message[:text] = "ไม่ได้ระบุแผนไว้ ช่วยระบุแผนด้วยคำสั่ง \"ลงทะเบียน #{run.course.title} bib #{run.bib} แผน XX\" โดยให้ X ระบุจำนวนชั่วโมงที่ต้องใช้ \n\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
+            return
+          end
+
+          #show plan image
+          @message = Array.new
+          @message << {
+            type: "image",
+            originalContentUrl: "https://line.nattee.net/cm6-2019/PLAN-#{run.course.title}-#{run.plan_hour}.jpg",
+            previewImageUrl: "https://line.nattee.net/cm6-2019/preview-PLAN-#{run.course.title}-#{run.plan_hour}.jpg",
+          }
+          @message << {
+            type: 'text',
+            text: "(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php",
+          }
         end
       end
       return true
@@ -248,13 +278,26 @@ module Dae
           กำลังวิ่งไป  #{station.long_name}
           ช่วงนี้ ระยะ #{sprintf("%.1f",curr_dist)} gain #{station.ascent} loss #{station.descent}
           EOS
+
+          #check if we have plan
+          run.plans.where(station: station).each do |plan|
+            plan_target_time = plan.cm6_time(plan.worldtime)
+            plan_remaining = remaining_time_in_minutes(plan.worldtime)
+            section_text += "\nตามแผน #{run.plan_hour} ชั่วโมง ต้องไปถึงภายใน #{plan_remaining} นาที (เวลา #{plan_target_time})\n"
+            if plan.margin_minute
+              section_text += plan.margin_text + "\n"
+            else
+              section_text += "ช่วงนี้ไม่มี cut-off\n"
+            end
+          end
         end
+
 
         #find cutoff
         if station.cutoff
           next_cutoff = station.cutoff
           cutoff_dist = station.distance
-          cutoff_station = "#{station.code} #{station.name}"
+          cutoff_station = station.long_name
           station_code = station.code
           break
         end
@@ -273,7 +316,8 @@ module Dae
 
         #response
         cutoff_text = <<~EOS
-        cutoff ต่อไปที่ #{cutoff_station} ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
+        cutoff ต่อไปที่ #{cutoff_station} 
+        ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
         เหลือเวลา #{t} นาที
         เหลือระยะทาง #{d_text} โล
         ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
@@ -348,8 +392,24 @@ module Dae
             i += 1
           end
           if i < array.count
-            puts "Match station #{station.code} to plan ##{i}"
             Plan.create(run: run, station: station, dist: array[i]['dist'], total_minute: array[i]['sectionTotalMinute'], worldtime: Time.at(array[i]['sectionRaceTime']).to_datetime, margin_minute: array[i]['sectionMarginMinute'], pace: "#{array[i]['sectionPaceMinute']}:#{array[i]['sectionPaceSecond']}")
+          end
+        end
+
+        #cache plan picture
+        pic_response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=#{target}")
+        if pic_response.code == 200
+          dir = Rails.root.join('public','cm6-2019')
+          unless dir.join("PLAN-#{course.title}-#{target}.jpg").exist?
+            f = File.open(dir.join("PLAN-#{course.title}-#{target}.jpg"), "wb")
+            f << pic_response.body
+            f.close
+
+            #resize
+            orig_name = dir.join("PLAN-#{course.title}-#{target}.jpg")
+            new_name  = dir.join("preview-PLAN-#{course.title}-#{target}.jpg")
+            cmd = "convert -geometry x240 #{orig_name} #{new_name}"
+            system(cmd)
           end
         end
       rescue RestClient::ExceptionWithResponse => e
