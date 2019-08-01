@@ -401,7 +401,7 @@ module Dae
         if pic_response.code == 200
           dir = Rails.root.join('public','cm6-2019')
           unless dir.join("PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg").exist?
-            f = File.open(dir.join("PLAN-#{course.title}-#{target}.jpg"), "wb")
+            f = File.open(dir.join("PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg"), "wb")
             f << pic_response.body
             f.close
 
