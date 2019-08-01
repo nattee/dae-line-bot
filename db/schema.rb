@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_08_01_165117) do
+ActiveRecord::Schema.define(version: 2019_08_01_184811) do
 
   create_table "athletes", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin", force: :cascade do |t|
     t.string "name"
@@ -42,6 +42,15 @@ ActiveRecord::Schema.define(version: 2019_08_01_165117) do
     t.datetime "updated_at", null: false
     t.float "gain"
     t.index ["race_id"], name: "index_courses_on_race_id"
+  end
+
+  create_table "line_groups", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "race_id"
+    t.string "line_group_id"
+    t.string "line_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["race_id"], name: "index_line_groups_on_race_id"
   end
 
   create_table "parameters", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
@@ -104,6 +113,7 @@ ActiveRecord::Schema.define(version: 2019_08_01_165117) do
 
   add_foreign_key "checkins", "runs"
   add_foreign_key "courses", "races"
+  add_foreign_key "line_groups", "races"
   add_foreign_key "plans", "runs"
   add_foreign_key "plans", "stations"
   add_foreign_key "runs", "athletes"

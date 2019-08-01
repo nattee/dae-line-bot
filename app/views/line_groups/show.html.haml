@@ -1,0 +1,15 @@
+%p#notice= notice
+
+%p
+  %b Race:
+  = @line_group.race
+%p
+  %b Line group:
+  = @line_group.line_group_id
+%p
+  %b Line:
+  = @line_group.line_id
+
+= link_to 'Edit', edit_line_group_path(@line_group)
+\|
+= link_to 'Back', line_groups_path

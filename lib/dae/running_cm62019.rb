@@ -48,7 +48,9 @@ module Dae
       when /^map/i
         return show_map
       when /^plan text/i
-        return show_plan_text
+        show_plan_text
+        puts @message.to_s
+        return true
       when /^plan/i
         return show_plan_pic
       else
@@ -89,6 +91,13 @@ module Dae
         run.bib = bib
         run.save
         @message[:text] = "OK พี่#{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
+
+        #add user to group, if this is group message
+        puts "hahaha"
+        puts @event['source']['type']
+        if @event['source']['type'] == 'group'
+          LineGroup.find_or_create_by(line_group_id: @event['source']['groupId'], line_id: @event['source']['userId'], race_id: 1)
+        end
 
         #set plans
         run.plans.destroy_all
@@ -343,21 +352,19 @@ module Dae
         last_station = 'hahaha'
         Run.where(course: course).order('current_dist').each.with_index do |run,j|
           #display course name
-          resp += course.title + "" if j == 0
+          resp += "*" + course.title + "*" if j == 0
 
           #display station name
           if last_station != run.station
             last_station = run.station
             if last_station.nil? || last_station.empty?
-              resp += "\nยังไม่เริ่ม: "
+              resp += "\nยังไม่เริ่ม:\n"
             else
-              resp += "\nผ่าน #{last_station} แล้ว: "
+              resp += "\nผ่าน #{last_station} แล้ว:\n"
             end
-          else
-            resp += ','
           end
 
-          resp += " #{run.athlete.line_name}"
+          resp += "#{run.athlete.line_name} (#{sprintf("%.1f",run.current_dist || 0)}km)\n"
           has_runner = true
         end
         resp += "\n\n" if has_runner
@@ -372,6 +379,36 @@ module Dae
         Run.where(course: course).order('current_dist').each.with_index do |run,j|
           chilling_trail_update(run.bib)
         end
+      end
+    end
+
+    def chilling_trail_update(bib)
+      #find the ahtlete
+      run = Run.where(bib: bib).first
+
+      #quit if this bib was updated in the last 10 secs.
+      return nil unless run && (run.last_online_call_timestamp.nil? || run.last_online_call_timestamp < 30.second.ago)
+
+      begin
+        response = RestClient.get("https://race.chillingtrail.run/2019/cm6/r-json/#{bib}")
+        hash = JSON.parse(response)
+
+        #if bib not found
+        return nil unless hash
+
+        #update
+        run.last_online_call_timestamp = Time.zone.now
+
+        begin
+          run.status = hash['progress']['state']
+          run.current_dist = hash['progress']['distance']
+          run.start_time = hash['progress']['startTime']
+          run.station = hash['progress']['station']
+        end
+
+        run.save
+      rescue RestClient::ExceptionWithResponse => e
+        return nil
       end
     end
 
@@ -418,35 +455,6 @@ module Dae
       end
     end
 
-    def chilling_trail_update(bib)
-      #find the ahtlete
-      run = Run.where(bib: bib).first
-
-      #quit if this bib was updated in the last 10 secs.
-      return nil unless run && (run.last_online_call_timestamp.nil? || run.last_online_call_timestamp < 30.second.ago)
-
-      begin
-        response = RestClient.get("https://race.chillingtrail.run/2019/cm6/r-json/#{bib}")
-        hash = JSON.parse(response)
-
-        #if bib not found
-        return nil unless hash
-
-        #update
-        run.last_online_call_timestamp = Time.zone.now
-
-        begin
-          run.status = hash['progress']['state']
-          run.current_dist = hash['progress']['distance']
-          run.start_time = hash['progress']['startTime']
-          run.station = hash['progress']['station']
-        end
-
-        run.save
-      rescue RestClient::ExceptionWithResponse => e
-        return nil
-      end
-    end
 
     def registered?
       runner = Athlete.where(line_id: @event['source']['userId']).first

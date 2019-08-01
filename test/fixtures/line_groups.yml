@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  race: one
+  line_group_id: MyString
+  line_id: MyString
+
+two:
+  race: two
+  line_group_id: MyString
+  line_id: MyString

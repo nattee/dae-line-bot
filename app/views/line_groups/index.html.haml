@@ -1,0 +1,25 @@
+%h1 Listing line_groups
+
+%table
+  %thead
+    %tr
+      %th Race
+      %th Line group
+      %th Line
+      %th
+      %th
+      %th
+
+  %tbody
+    - @line_groups.each do |line_group|
+      %tr
+        %td= line_group.race
+        %td= line_group.line_group_id
+        %td= line_group.line_id
+        %td= link_to 'Show', line_group
+        %td= link_to 'Edit', edit_line_group_path(line_group)
+        %td= link_to 'Destroy', line_group, method: :delete, data: { confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Line group', new_line_group_path

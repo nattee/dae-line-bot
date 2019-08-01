@@ -18,6 +18,9 @@ tmp/*
 # Ignore uploaded files in development
 storage/*
 
+public/cm6-2019/PLAN*
+public/cm6-2019/preview*
+
 node_modules
 yarn-error.log
 
