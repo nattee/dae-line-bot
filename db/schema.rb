@@ -51,7 +51,7 @@ ActiveRecord::Schema.define(version: 2019_08_01_091812) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "plans", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "plans", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "run_id"
     t.bigint "station_id"
     t.integer "total_minute"

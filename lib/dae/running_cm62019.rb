@@ -30,18 +30,20 @@ module Dae
       return true if special_command(text)
 
       case text.strip
-      when /^ลงทะเบียน (CM[1-6]) bib (\w{,10}) แผน (([0-9]+\.?[0-9]*))/
+      when /^ลงทะเบียน (CM[1-6]) bib (\w{,10}) แผน (([0-9]+\.?[0-9]*))/i
         return register($1,$2,$3)
-      when /^ลงทะเบียน (CM[1-6]) bib (\w{,10})/
+      when /^ลงทะเบียน (CM[1-6]) bib (\w{,10})/i
         return register($1,$2)
       when /^update cm6/i
         return show_update
       when /^progress cm6/i
         call_chilling_trail_all_runner
         return progress_text
-      when /^([0-9\.]+)\s*(km|โล|k)$/
+      when /^([0-9\.]+)\s*(km|โล|k)$/i
         my_dist = $1.to_f
-        return pace_query(my_dist)
+        return dist_update(my_dist)
+      when /^map/i
+        return show_map
       else
         return funny_response(text)
       end
@@ -90,51 +92,31 @@ module Dae
       return true
     end
 
-    def pace_query(dist)
+    def show_map
+      if client_is_friend?
+        runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
+
+        unless registered?
+          @message[:text] = "#{@sender_name} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CM2 bib 1234\""
+          return true
+        end
+
+        Run.where(athlete: runner).each do |run|
+            @message[:type] = "image"
+            @message[:originalContentUrl] = "https://line.nattee.net/cm6-2019/#{run.course.title}_map.jpg"
+            @message[:previewImageUrl] = "https://line.nattee.net/cm6-2019/#{run.course.title}_map_preview.jpg"
+        end
+      end
+      return true
+    end
+
+    def dist_update(dist)
       if client_is_friend?
         runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
         Run.where(athlete: runner).each do |run|
-          #find next station,cutoff, etc
-          next_cutoff = nil
-          cutoff_dist = nil
-          cutoff_station = nil
-          station_code = nil
-          run.course.stations.order('distance').each do |station|
-            puts "#{station.code} #{station.distance}"
-            next if station.distance <= dist
-            next_dist = station.distance unless next_dist
-            if station.cutoff
-              next_cutoff = station.cutoff
-              cutoff_dist = station.distance
-              cutoff_station = "#{station.code} #{station.name}"
-              station_code = station.code
-              break
-            end
-          end
-
-          if next_cutoff
-            #calculate
-            d = cutoff_dist - dist
-            t = remaining_time_in_minutes(next_cutoff)
-            d_text = sprintf("%.2f",d)
-            pace = t/d
-
-            run.station = station_code
-            run.current_dist = dist
-            run.save
-
-            #response
-            @message[:text] = <<~EOS
-            cutoff ต่อไปที่ #{cutoff_station} ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
-            เหลือเวลา #{t} นาที
-            เหลือระยะทาง #{d_text} โล
-            ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
-            สู้ ๆ
-            EOS
-          else
-            @message[:text] = "จบแล้ว!!! เยี่ยมมากครับ"
-          end
-
+          # get cutoff text
+          cutoff_response = build_cutoff_response(dist,run)
+          @message[:text] = cutoff_response
         end
       end
       return true
@@ -191,6 +173,68 @@ module Dae
       end
     end
 
+    def build_cutoff_response(dist,run)
+      #find next cutoff
+      next_cutoff = nil
+      cutoff_dist = nil
+      cutoff_station = nil
+      station_code = nil
+      section_text = nil
+      last_dist = 0
+      run.course.stations.order('distance').each do |station|
+        curr_dist = station.distance - last_dist
+        last_dist = station.distance
+
+        #skip if this is not what we want
+        next if station.distance <= dist
+
+        next_dist = station.distance unless next_dist
+
+        #found current section
+        unless section_text
+          section_text = <<~EOS
+          กำลังวิ่งไป #{station.code} #{station.name.empty? ? '' : "(#{station.name})"}
+          ช่วงนี้ ระยะ #{curr_dist} gain #{station.ascent} loss #{station.descent}
+          EOS
+        end
+
+        #find cutoff
+        if station.cutoff
+          next_cutoff = station.cutoff
+          cutoff_dist = station.distance
+          cutoff_station = "#{station.code} #{station.name}"
+          station_code = station.code
+          break
+        end
+      end
+
+      if next_cutoff
+        #calculate
+        d = cutoff_dist - dist
+        t = remaining_time_in_minutes(next_cutoff)
+        d_text = sprintf("%.2f",d)
+        pace = t/d
+
+        run.station = station_code
+        run.current_dist = dist
+        run.save
+
+        #response
+        cutoff_text = <<~EOS
+        cutoff ต่อไปที่ #{cutoff_station} ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
+        เหลือเวลา #{t} นาที
+        เหลือระยะทาง #{d_text} โล
+        ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
+        สู้ ๆ
+        EOS
+
+        return section_text + "\n" + cutoff_text
+      else
+        return "จบแล้ว!!! เยี่ยมมากครับ"
+      end
+    end
+
+
     def encourage_text
       return ENCOURAGE_TEXT.sample
     end
@@ -234,13 +278,13 @@ module Dae
       end
     end
 
+    #should be called offline, once is OK
     def call_chilling_trail_all_course
       Course.where(race_id: 1).all.each.with_index do |course,i|
         chilling_trail_update_course(course)
       end
     end
 
-    #should be called offline, once is OK
     def chilling_trail_update_course(course)
       begin
         response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=7&output=json")
@@ -249,13 +293,17 @@ module Dae
         return nil unless array
 
         i = 0;
+        puts "DOING #{course.title}"
         course.stations.order(:distance).each do |station|
           while (i < array.count && array[i]['dist'].to_f < station.distance) 
             i += 1
           end
           if i < array.count
+            puts "MATCHING STATION #{station.name} with idx #{i}"
             station.ascent = array[i]['ascent']
             station.descent = array[i]['descent']
+            station.save
+            puts "haha #{station.ascent} #{station.descent} #{array[i]['ascent']} #{array[i]['descent']}"
           end
         end
       rescue RestClient::ExceptionWithResponse => e
@@ -321,5 +369,13 @@ module Dae
       end
     end
 
-  end
+    def registered?
+      runner = Athlete.where(line_id: @event['source']['userId']).first
+      return false unless runner
+      run = Run.where(athlete: runner).first
+      return false unless run
+      return true
+    end
+
+  end #class
 end
