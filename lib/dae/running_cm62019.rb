@@ -34,6 +34,8 @@ module Dae
         return register($1,$2,$3)
       when /^ลงทะเบียน (CM[1-6]) bib (\w{,10})/i
         return register($1,$2)
+      when /^ยกเลิกลงทะเบียน (CM[1-6])/i
+        return unregister($1)
       when /^update cm6/i
         return show_update
       when /^progress cm6/i
@@ -44,6 +46,8 @@ module Dae
         return dist_update(my_dist)
       when /^map/i
         return show_map
+      when /^plan/i
+        return show_plan
       else
         return funny_response(text)
       end
@@ -67,6 +71,7 @@ module Dae
     end
 
     def register(course_name,bib,target = nil)
+      course_name.upcase!
       if client_is_friend?
         course = Course.where(title: course_name).first
         unless course
@@ -80,11 +85,38 @@ module Dae
         run = Run.find_or_create_by(athlete: runner,course: course)
         run.bib = bib
         run.save
-
         @message[:text] = "OK พี่#{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
+
+        #set plans
+        run.plans.destroy_all
         if target
           @message[:text] += "\nแผน #{target} ชั่วโมง" if target
           chilling_trail_update_plan(runner,course,target)
+        end
+      else
+        #response with default non-friend
+      end
+      return true
+    end
+
+    def unregister(course_name)
+      course_name.upcase!
+      if client_is_friend?
+        course = Course.where(title: course_name).first
+        unless course
+          @message[:text] = "#{@sender_name} ไม่รู้จักงาน #{course_name}"
+          return true
+        end
+
+        runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
+        runner.line_name = @sender_name
+        runner.save
+        runs = Run.where(athlete: runner,course: course)
+        if runs.count > 0
+          runs.destroy_all
+          @message[:text] = "#{@sender_name} ยกเลิก #{course_name} แล้ว"
+        else
+          @message[:text] = "#{@sender_name} ไม่ได้ลงทะเบียน #{course_name} ไว้"
         end
       else
         #response with default non-friend
@@ -96,15 +128,32 @@ module Dae
       if client_is_friend?
         runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
 
-        unless registered?
-          @message[:text] = "#{@sender_name} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CM2 bib 1234\""
-          return true
-        end
+        return true unless registered?
 
         Run.where(athlete: runner).each do |run|
             @message[:type] = "image"
             @message[:originalContentUrl] = "https://line.nattee.net/cm6-2019/#{run.course.title}_map.jpg"
             @message[:previewImageUrl] = "https://line.nattee.net/cm6-2019/#{run.course.title}_map_preview.jpg"
+        end
+      end
+      return true
+    end
+
+    def show_plan
+      if client_is_friend?
+        runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
+
+        return true unless registered?
+
+        resp = "แผน\n"
+        Run.where(athlete: runner).each do |run|
+          if run.plans.count == 0
+            @message[:text] = "ไม่ได้ระบุแผนไว้ ช่วยระบุแผนด้วยคำสั่ง \"ลงทะเบียน #{run.course.title} bib #{run.bib} แผน XX\" โดยให้ X ระบุจำนวนชั่วโมงที่ต้องใช้ \n\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
+          end
+          run.plans.each do |plan|
+            resp += plan.summary_text + "\n\n"
+          end
+          @message[:text] = resp
         end
       end
       return true
@@ -193,8 +242,8 @@ module Dae
         #found current section
         unless section_text
           section_text = <<~EOS
-          กำลังวิ่งไป #{station.code} #{station.name.empty? ? '' : "(#{station.name})"}
-          ช่วงนี้ ระยะ #{curr_dist} gain #{station.ascent} loss #{station.descent}
+          กำลังวิ่งไป  #{station.long_name}
+          ช่วงนี้ ระยะ #{sprintf("%.1f",curr_dist)} gain #{station.ascent} loss #{station.descent}
           EOS
         end
 
@@ -278,40 +327,6 @@ module Dae
       end
     end
 
-    #should be called offline, once is OK
-    def call_chilling_trail_all_course
-      Course.where(race_id: 1).all.each.with_index do |course,i|
-        chilling_trail_update_course(course)
-      end
-    end
-
-    def chilling_trail_update_course(course)
-      begin
-        response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=7&output=json")
-        array = JSON.parse(response)
-
-        return nil unless array
-
-        i = 0;
-        puts "DOING #{course.title}"
-        course.stations.order(:distance).each do |station|
-          while (i < array.count && array[i]['dist'].to_f < station.distance) 
-            i += 1
-          end
-          if i < array.count
-            puts "MATCHING STATION #{station.name} with idx #{i}"
-            station.ascent = array[i]['ascent']
-            station.descent = array[i]['descent']
-            station.save
-            puts "haha #{station.ascent} #{station.descent} #{array[i]['ascent']} #{array[i]['descent']}"
-          end
-        end
-      rescue RestClient::ExceptionWithResponse => e
-        return nil
-      end
-    end
-
-    #should be called offline, once is OK
     def chilling_trail_update_plan(athlete,course,target)
       begin
         response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=#{target}&output=json")
@@ -331,7 +346,7 @@ module Dae
           end
           if i < array.count
             puts "Match station #{station.code} to plan ##{i}"
-            Plan.create(run: run, station: station, total_minute: array[i]['sectionTotalMinute'], worldtime: array[i]['sectionRaceTime'], margin_minute: array[i]['sectionMarginMinute'], pace: "#{array[i]['sectionPaceMinute']}:#{array[i]['sectionPaceSecond']}")
+            Plan.create(run: run, station: station, dist: array[i]['dist'], total_minute: array[i]['sectionTotalMinute'], worldtime: Time.at(array[i]['sectionRaceTime']).to_datetime, margin_minute: array[i]['sectionMarginMinute'], pace: "#{array[i]['sectionPaceMinute']}:#{array[i]['sectionPaceSecond']}")
           end
         end
       rescue RestClient::ExceptionWithResponse => e
@@ -371,9 +386,15 @@ module Dae
 
     def registered?
       runner = Athlete.where(line_id: @event['source']['userId']).first
-      return false unless runner
+      unless runner
+        @message[:text] = "#{@sender_name} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CM2 bib 1234\""
+        return false
+      end
       run = Run.where(athlete: runner).first
-      return false unless run
+      unless run
+        @message[:text] = "#{@sender_name} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CM2 bib 1234\""
+        return false
+      end
       return true
     end
 
