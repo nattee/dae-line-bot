@@ -90,7 +90,9 @@ module Dae
         #set plans
         run.plans.destroy_all
         if target
-          @message[:text] += "\nแผน #{target} ชั่วโมง" if target
+          if target
+            @message[:text] += "\n\nแผน #{target} ชั่วโมง\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
+          end
           chilling_trail_update_plan(runner,course,target)
         end
       else
@@ -149,6 +151,7 @@ module Dae
         Run.where(athlete: runner).each do |run|
           if run.plans.count == 0
             @message[:text] = "ไม่ได้ระบุแผนไว้ ช่วยระบุแผนด้วยคำสั่ง \"ลงทะเบียน #{run.course.title} bib #{run.bib} แผน XX\" โดยให้ X ระบุจำนวนชั่วโมงที่ต้องใช้ \n\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
+            return
           end
           run.plans.each do |plan|
             resp += plan.summary_text + "\n\n"
