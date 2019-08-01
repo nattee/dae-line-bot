@@ -5,10 +5,6 @@ module Dae
   class RunningCM62019
     ENCOURAGE_TEXT = ['สู้ ๆ ครับ', 'ขอให้จบสวย ๆ', 'สบาย ๆ ระดับนี้แล้ว', 'วิ่งให้สนุกครับ!', 'ลุยยยยย']
     def initialize(end_time = nil)
-      @message = {
-        type: 'text',
-        text: ''
-      }
     end
 
     #main callback function
@@ -26,6 +22,11 @@ module Dae
     end
 
     def process_text
+      @message = {
+        type: 'text',
+        text: ''
+      }
+
       text = @event.message['text']
       return true if special_command(text)
 
@@ -153,7 +154,7 @@ module Dae
         Run.where(athlete: runner).each do |run|
           if run.plans.count == 0
             @message[:text] = "ไม่ได้ระบุแผนไว้ ช่วยระบุแผนด้วยคำสั่ง \"ลงทะเบียน #{run.course.title} bib #{run.bib} แผน XX\" โดยให้ X ระบุจำนวนชั่วโมงที่ต้องใช้ \n\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\nhttps://plan.chillingtrail.run/CM6_2019_index.php"
-            return
+            return true
           end
           run.plans.each do |plan|
             resp += plan.summary_text + "\n\n"
