@@ -1,0 +1,31 @@
+%h1 Listing plans
+
+%table
+  %thead
+    %tr
+      %th Run
+      %th Station
+      %th Total minute
+      %th Worldtime
+      %th Margin minute
+      %th Pace
+      %th
+      %th
+      %th
+
+  %tbody
+    - @plans.each do |plan|
+      %tr
+        %td= plan.run
+        %td= plan.station
+        %td= plan.total_minute
+        %td= plan.worldtime
+        %td= plan.margin_minute
+        %td= plan.pace
+        %td= link_to 'Show', plan
+        %td= link_to 'Edit', edit_plan_path(plan)
+        %td= link_to 'Destroy', plan, method: :delete, data: { confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Plan', new_plan_path

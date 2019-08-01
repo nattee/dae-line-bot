@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_07_31_171451) do
+ActiveRecord::Schema.define(version: 2019_08_01_091812) do
 
   create_table "athletes", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin", force: :cascade do |t|
     t.string "name"
@@ -51,6 +51,19 @@ ActiveRecord::Schema.define(version: 2019_07_31_171451) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "plans", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+    t.bigint "run_id"
+    t.bigint "station_id"
+    t.integer "total_minute"
+    t.datetime "worldtime"
+    t.integer "margin_minute"
+    t.string "pace"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["run_id"], name: "index_plans_on_run_id"
+    t.index ["station_id"], name: "index_plans_on_station_id"
+  end
+
   create_table "races", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.string "title"
     t.datetime "created_at", null: false
@@ -72,7 +85,7 @@ ActiveRecord::Schema.define(version: 2019_07_31_171451) do
     t.index ["course_id"], name: "index_runs_on_course_id"
   end
 
-  create_table "stations", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "stations", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.bigint "course_id"
     t.string "code"
     t.string "shortname"
@@ -81,11 +94,16 @@ ActiveRecord::Schema.define(version: 2019_07_31_171451) do
     t.datetime "cutoff"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "ascent"
+    t.integer "descent"
+    t.integer "chilling_trail_time_minute"
     t.index ["course_id"], name: "index_stations_on_course_id"
   end
 
   add_foreign_key "checkins", "runs"
   add_foreign_key "courses", "races"
+  add_foreign_key "plans", "runs"
+  add_foreign_key "plans", "stations"
   add_foreign_key "runs", "athletes"
   add_foreign_key "runs", "courses"
   add_foreign_key "stations", "courses"

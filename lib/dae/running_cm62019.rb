@@ -30,6 +30,8 @@ module Dae
       return true if special_command(text)
 
       case text.strip
+      when /^ลงทะเบียน (CM[1-6]) bib (\w{,10}) แผน (([0-9]+\.?[0-9]*))/
+        return register($1,$2,$3)
       when /^ลงทะเบียน (CM[1-6]) bib (\w{,10})/
         return register($1,$2)
       when /^update cm6/i
@@ -62,7 +64,7 @@ module Dae
       @message[:text] = "#{text} \nรับทราบ ปฏิบัติ!!!"
     end
 
-    def register(course_name,bib)
+    def register(course_name,bib,target = nil)
       if client_is_friend?
         course = Course.where(title: course_name).first
         unless course
@@ -78,6 +80,10 @@ module Dae
         run.save
 
         @message[:text] = "OK พี่#{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
+        if target
+          @message[:text] += "\nแผน #{target} ชั่วโมง" if target
+          chilling_trail_update_plan(runner,course,target)
+        end
       else
         #response with default non-friend
       end
@@ -225,6 +231,63 @@ module Dae
         Run.where(course: course).order('current_dist').each.with_index do |run,j|
           chilling_trail_update(run.bib)
         end
+      end
+    end
+
+    def call_chilling_trail_all_course
+      Course.where(race_id: 1).all.each.with_index do |course,i|
+        chilling_trail_update_course(course)
+      end
+    end
+
+    #should be called offline, once is OK
+    def chilling_trail_update_course(course)
+      begin
+        response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=7&output=json")
+        array = JSON.parse(response)
+
+        return nil unless array
+
+        i = 0;
+        course.stations.order(:distance).each do |station|
+          while (i < array.count && array[i]['dist'].to_f < station.distance) 
+            i += 1
+          end
+          if i < array.count
+            station.ascent = array[i]['ascent']
+            station.descent = array[i]['descent']
+          end
+        end
+      rescue RestClient::ExceptionWithResponse => e
+        return nil
+      end
+    end
+
+    #should be called offline, once is OK
+    def chilling_trail_update_plan(athlete,course,target)
+      begin
+        response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=#{target}&output=json")
+        array = JSON.parse(response)
+
+        return nil unless array
+
+
+        run = Run.where(athlete: athlete, course: course).first
+        run.plans.destroy_all
+
+        i = 0;
+        course.stations.order(:distance).each do |station|
+          next if station.distance == 0
+          while (i < array.count && array[i]['dist'].to_f < station.distance) 
+            i += 1
+          end
+          if i < array.count
+            puts "Match station #{station.code} to plan ##{i}"
+            Plan.create(run: run, station: station, total_minute: array[i]['sectionTotalMinute'], worldtime: array[i]['sectionRaceTime'], margin_minute: array[i]['sectionMarginMinute'], pace: "#{array[i]['sectionPaceMinute']}:#{array[i]['sectionPaceSecond']}")
+          end
+        end
+      rescue RestClient::ExceptionWithResponse => e
+        return nil
       end
     end
 
