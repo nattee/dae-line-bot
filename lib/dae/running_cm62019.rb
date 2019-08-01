@@ -180,8 +180,8 @@ module Dae
           @message = Array.new
           @message << {
             type: "image",
-            originalContentUrl: "https://line.nattee.net/cm6-2019/PLAN-#{run.course.title}-#{run.plan_hour}.jpg",
-            previewImageUrl: "https://line.nattee.net/cm6-2019/preview-PLAN-#{run.course.title}-#{run.plan_hour}.jpg",
+            originalContentUrl: "https://line.nattee.net/cm6-2019/PLAN-#{run.course.title}-#{sprintf("%.02f",run.plan_hour)}.jpg",
+            previewImageUrl: "https://line.nattee.net/cm6-2019/preview-PLAN-#{run.course.title}-#{sprintf("%.02f",run.plan_hour)}.jpg",
           }
           @message << {
             type: 'text',
@@ -400,14 +400,14 @@ module Dae
         pic_response = RestClient.get("https://plan.chillingtrail.run/CM6_2019.php?distance=#{course.title}&target=#{target}")
         if pic_response.code == 200
           dir = Rails.root.join('public','cm6-2019')
-          unless dir.join("PLAN-#{course.title}-#{target}.jpg").exist?
+          unless dir.join("PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg").exist?
             f = File.open(dir.join("PLAN-#{course.title}-#{target}.jpg"), "wb")
             f << pic_response.body
             f.close
 
             #resize
-            orig_name = dir.join("PLAN-#{course.title}-#{target}.jpg")
-            new_name  = dir.join("preview-PLAN-#{course.title}-#{target}.jpg")
+            orig_name = dir.join("PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg")
+            new_name  = dir.join("preview-PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg")
             cmd = "convert -geometry x240 #{orig_name} #{new_name}"
             system(cmd)
           end
