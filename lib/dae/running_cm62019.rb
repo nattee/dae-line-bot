@@ -40,8 +40,23 @@ module Dae
       when /^update cm6/i
         return show_update
       when /^progress cm6/i
-        call_chilling_trail_all_runner
-        return progress_text
+        if @event['source']['type'] == 'group'
+          group_id = @event['source']['groupId']
+          #group_id = "Cbcb6e099aaf6a56a88cb1346f362e778"
+          call_chilling_trail_all_runner(group_id)
+          return progress_text(group_id)
+        else
+          @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
+        end
+        return true
+      when /^progress add bib (\w{,10})/
+        if @event['source']['type'] == 'group'
+          group_id = @event['source']['groupId']
+          return add_bib_to_group($1,group_id)
+        else
+          @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
+        end
+        return true
       when /^([0-9\.]+)\s*(km|โล|k)$/i
         my_dist = $1.to_f
         return dist_update(my_dist)
@@ -49,7 +64,6 @@ module Dae
         return show_map
       when /^plan text/i
         show_plan_text
-        puts @message.to_s
         return true
       when /^plan/i
         return show_plan_pic
@@ -93,8 +107,6 @@ module Dae
         @message[:text] = "OK พี่#{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
 
         #add user to group, if this is group message
-        puts "hahaha"
-        puts @event['source']['type']
         if @event['source']['type'] == 'group'
           LineGroup.find_or_create_by(line_group_id: @event['source']['groupId'], line_id: @event['source']['userId'], race_id: 1)
         end
@@ -135,6 +147,20 @@ module Dae
       else
         #response with default non-friend
       end
+      return true
+    end
+
+    def add_bib_to_group(bib,group_id)
+      run = Run.where(bib: bib).first
+
+      unless run
+        @message[:text] = "bib #{bib} ยังไม่ได้ลงทะเบียนครับ ขอให้คนนั้นลงทะเบียนก่อน โดยทำงี้ครับ\n\n 1. add ผมเป็นเพื่อน \n\n 2. พิมพ์ \"ลงทะเบียน CMx bib yyyy แผน zz\" เช่น \n\nลงทะเบียน CM6 bib 4124 แผน 36 \n\nเพื่อบอกผมว่า จะวิ่งงานไหน บิบอะไร ด้วยแผนกี่ ชม." 
+        return true
+      end
+
+      #add user to group, if this is group message
+      LineGroup.find_or_create_by(line_group_id: group_id, line_id: run.athlete.line_id, race_id: 1)
+      @message[:text] = "รับทราบ เพิ่ม บิบหมายเลข #{run.bib} ลงงาน #{run.course.title} เรียบร้อย\n\n (ดูผลโดยพิมพ์ progress cm6)"
       return true
     end
 
@@ -348,13 +374,13 @@ module Dae
       return ENCOURAGE_TEXT.sample
     end
 
-    def progress_text
+    def progress_text(group_id)
       resp = ""
-      puts "hehehe"
       Course.where(race_id: 1).all.each.with_index do |course,i|
         has_runner = false
         last_station = 'hahaha'
-        Run.where(course: course).order('current_dist').each.with_index do |run,j|
+        Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").where("line_groups.line_group_id = ?",group_id).where(course: course).order('current_dist').each.with_index do |run,j|
+        #Run.where(course: course).order('current_dist').each.with_index do |run,j|
           #display course name
           resp += "*" + course.title + "*" if j == 0
 
@@ -374,17 +400,24 @@ module Dae
         resp += "\n" if has_runner
       end
 
+      resp += 'กราบขอบพระคุณข้อมูลจาก Chilling Trail (https://www.facebook.com/Chilling.Trail/)'
       @message[:text] = resp
-      puts resp
       return true
     end
 
-    def call_chilling_trail_all_runner
-      Course.where(race_id: 1).all.each.with_index do |course,i|
-        Run.where(course: course).order('current_dist').each.with_index do |run,j|
-          chilling_trail_update(run.bib)
-        end
+    def call_chilling_trail_all_runner(group_id)
+      Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").
+        where("line_groups.line_group_id = ?",group_id).
+        order('current_dist').each.with_index do |run,j|
+
+        puts "chilling"
+        chilling_trail_update(run.bib)
       end
+      #Course.where(race_id: 1).all.each.with_index do |course,i|
+      #  Run.where(course: course).order('current_dist').each.with_index do |run,j|
+      #    chilling_trail_update(run.bib)
+      #  end
+      #end
     end
 
     def chilling_trail_update(bib)
@@ -392,7 +425,7 @@ module Dae
       run = Run.where(bib: bib).first
 
       #quit if this bib was updated in the last 10 secs.
-      return nil unless run && (run.last_online_call_timestamp.nil? || run.last_online_call_timestamp < 30.second.ago)
+      return nil unless run && (run.last_online_call_timestamp.nil? || run.last_online_call_timestamp < 60.second.ago)
 
       begin
         response = RestClient.get("https://race.chillingtrail.run/2019/cm6/r-json/#{bib}")
@@ -406,9 +439,11 @@ module Dae
 
         begin
           run.status = hash['progress']['state']
-          run.current_dist = hash['progress']['distance']
           run.start_time = hash['progress']['startTime']
           run.station = hash['progress']['station']
+          if (run.current_dist.nil? || run.current_dist < hash['progress']['distance'])
+            run.current_dist = hash['progress']['distance']
+          end
         end
 
         run.save
@@ -461,15 +496,16 @@ module Dae
     end
 
 
-    def registered?
-      runner = Athlete.where(line_id: @event['source']['userId']).first
+    def registered?(line_id = @event['source']['userId'], sender = @sender_name)
+      runner = Athlete.where(line_id: line_id).first
+      help_text = "#{sender} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CMx bib yyyy แผน zz\" เช่น ลงทะเบียน CM6 bib 4124 แผน 36 เพิ้อบอกผมว่า จะวิ่งงานไหน บิบอะไร ด้วยแผนกี่ ชม." 
       unless runner
-        @message[:text] = "#{@sender_name} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CM2 bib 1234\""
+        @message[:text] = help_text
         return false
       end
       run = Run.where(athlete: runner).first
       unless run
-        @message[:text] = "#{@sender_name} ยังไม่ได้ลงทะเบียนครับ ช่วยลงทะเบียนก่อนโดยพิมพ์ \"ลงทะเบียน CM2 bib 1234\""
+        @message[:text] = help_text
         return false
       end
       return true
