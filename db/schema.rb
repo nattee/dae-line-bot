@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_08_01_184811) do
+ActiveRecord::Schema.define(version: 2019_08_02_132424) do
 
   create_table "athletes", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin", force: :cascade do |t|
     t.string "name"
@@ -44,7 +44,7 @@ ActiveRecord::Schema.define(version: 2019_08_01_184811) do
     t.index ["race_id"], name: "index_courses_on_race_id"
   end
 
-  create_table "line_groups", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "line_groups", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.bigint "race_id"
     t.string "line_group_id"
     t.string "line_id"
@@ -60,7 +60,7 @@ ActiveRecord::Schema.define(version: 2019_08_01_184811) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "plans", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "plans", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.bigint "run_id"
     t.bigint "station_id"
     t.integer "total_minute"
@@ -92,6 +92,9 @@ ActiveRecord::Schema.define(version: 2019_08_01_184811) do
     t.string "station"
     t.datetime "last_online_call_timestamp"
     t.float "plan_hour"
+    t.string "ct_station"
+    t.datetime "ct_checkin_time"
+    t.float "ct_distance"
     t.index ["athlete_id"], name: "index_runs_on_athlete_id"
     t.index ["course_id"], name: "index_runs_on_course_id"
   end

@@ -49,6 +49,16 @@ module Dae
           @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
         end
         return true
+      when /^progress official/i
+        if @event['source']['type'] == 'group'
+          group_id = @event['source']['groupId']
+          #group_id = "Cbcb6e099aaf6a56a88cb1346f362e778"
+          call_chilling_trail_all_runner(group_id)
+          return progress_text(group_id,{official: true})
+        else
+          @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
+        end
+        return true
       when /^progress add bib (\w{,10})/
         if @event['source']['type'] == 'group'
           group_id = @event['source']['groupId']
@@ -374,27 +384,34 @@ module Dae
       return ENCOURAGE_TEXT.sample
     end
 
-    def progress_text(group_id)
+    def progress_text(group_id,options)
       resp = ""
       Course.where(race_id: 1).all.each.with_index do |course,i|
         has_runner = false
         last_station = 'hahaha'
-        Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").where("line_groups.line_group_id = ?",group_id).where(course: course).order('current_dist').each.with_index do |run,j|
-        #Run.where(course: course).order('current_dist').each.with_index do |run,j|
+        Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").
+          where("line_groups.line_group_id = ?",group_id).
+          where(course: course).
+          order('current_dist, ct_checkin_time').uniq.each.with_index do |run,j|
+
           #display course name
           resp += "*" + course.title + "*" if j == 0
 
           #display station name
-          if last_station != run.station
-            last_station = run.station
-            if last_station.nil? || last_station.empty?
-              resp += "\nยังไม่เริ่ม:\n"
-            else
-              resp += "\nผ่าน #{last_station} แล้ว:\n"
+          if (opionts[:official]) 
+            resp += "#{run.athlete.line_name}: #{run.status} #{run.ct_station} #{sprintf("%.1f",run.ct_distance || 0)}km #{run.ct_checkin_time.strftime("เมื่อ %H:%M ของวันที่ %e")}"
+          else
+            if last_station != run.station
+              last_station = run.station
+              if last_station.nil? || last_station.empty?
+                resp += "\nยังไม่เริ่ม:\n"
+              else
+                resp += "\nผ่าน #{last_station} แล้ว:\n"
+              end
             end
-          end
 
-          resp += "#{run.athlete.line_name} (#{sprintf("%.1f",run.current_dist || 0)}km)\n"
+            resp += "#{run.athlete.line_name} (#{sprintf("%.1f",run.current_dist || 0)}km)\n"
+          end
           has_runner = true
         end
         resp += "\n" if has_runner
@@ -408,9 +425,8 @@ module Dae
     def call_chilling_trail_all_runner(group_id)
       Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").
         where("line_groups.line_group_id = ?",group_id).
-        order('current_dist').each.with_index do |run,j|
+        order('current_dist').uniq.each.with_index do |run,j|
 
-        puts "chilling"
         chilling_trail_update(run.bib)
       end
       #Course.where(race_id: 1).all.each.with_index do |course,i|
@@ -440,7 +456,9 @@ module Dae
         begin
           run.status = hash['progress']['state']
           run.start_time = hash['progress']['startTime']
-          run.station = hash['progress']['station']
+          run.ct_station = hash['progress']['station']
+          run.ct_checkin_time = hash['progress']['time']
+          run.ct_distance = hash['progress']['distance']
           if (run.current_dist.nil? || run.current_dist < hash['progress']['distance'])
             run.current_dist = hash['progress']['distance']
           end
