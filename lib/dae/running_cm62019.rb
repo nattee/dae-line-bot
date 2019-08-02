@@ -49,7 +49,7 @@ module Dae
           @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
         end
         return true
-      when /^progress official/i
+      when /^progress checkin/i
         if @event['source']['type'] == 'group'
           group_id = @event['source']['groupId']
           #group_id = "Cbcb6e099aaf6a56a88cb1346f362e778"
@@ -366,7 +366,7 @@ module Dae
         #response
         cutoff_text = <<~EOS
         cutoff ต่อไปที่ #{cutoff_station} 
-        ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %e")}
+        ตอน #{next_cutoff.strftime("%H:%M ของวันที่ %-d")}
         เหลือเวลา #{t} นาที
         เหลือระยะทาง #{d_text} โล
         ต้องวิ่งเพซ #{pace_text(pace)} เป็นอย่างน้อยนะจ๊ะ
@@ -384,8 +384,9 @@ module Dae
       return ENCOURAGE_TEXT.sample
     end
 
-    def progress_text(group_id,options)
+    def progress_text(group_id,options = {})
       resp = ""
+      resp = "ข้อมูล check in ล่าสุดจาก Chilling Trail\n" if options[:official]
       Course.where(race_id: 1).all.each.with_index do |course,i|
         has_runner = false
         last_station = 'hahaha'
@@ -398,8 +399,9 @@ module Dae
           resp += "*" + course.title + "*" if j == 0
 
           #display station name
-          if (opionts[:official]) 
-            resp += "#{run.athlete.line_name}: #{run.status} #{run.ct_station} #{sprintf("%.1f",run.ct_distance || 0)}km #{run.ct_checkin_time.strftime("เมื่อ %H:%M ของวันที่ %e")}"
+          if (options[:official])
+            resp += "\n" if j == 0
+            resp += "#{run.athlete.line_name}: #{run.chilling_trail_status}\n"
           else
             if last_station != run.station
               last_station = run.station

@@ -6,6 +6,6 @@ class ApplicationRecord < ActiveRecord::Base
   end
 
   def cm6_time(datetime)
-    datetime.strftime("%H:%M ของวันที่ %e") if datetime
+    datetime.strftime("%H:%M ของวันที่ %-d") if datetime
   end
 end
