@@ -278,7 +278,10 @@ module Dae
         last_dist = station.distance
 
         #skip if this is not what we want
-        next if station.distance <= dist
+        if station.distance <= dist
+          station_code = station.code
+          next
+        end
 
         next_dist = station.distance unless next_dist
 
@@ -308,10 +311,13 @@ module Dae
           next_cutoff = station.cutoff
           cutoff_dist = station.distance
           cutoff_station = station.long_name
-          station_code = station.code
           break
         end
       end
+
+      run.station = station_code
+      run.current_dist = dist
+      run.save
 
       if next_cutoff
         #calculate
@@ -320,9 +326,6 @@ module Dae
         d_text = sprintf("%.2f",d)
         pace = t/d
 
-        run.station = station_code
-        run.current_dist = dist
-        run.save
 
         #response
         cutoff_text = <<~EOS
@@ -347,6 +350,7 @@ module Dae
 
     def progress_text
       resp = ""
+      puts "hehehe"
       Course.where(race_id: 1).all.each.with_index do |course,i|
         has_runner = false
         last_station = 'hahaha'
@@ -367,10 +371,11 @@ module Dae
           resp += "#{run.athlete.line_name} (#{sprintf("%.1f",run.current_dist || 0)}km)\n"
           has_runner = true
         end
-        resp += "\n\n" if has_runner
+        resp += "\n" if has_runner
       end
 
       @message[:text] = resp
+      puts resp
       return true
     end
 
