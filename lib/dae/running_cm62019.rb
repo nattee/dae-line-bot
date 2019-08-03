@@ -390,10 +390,11 @@ module Dae
       Course.where(race_id: 1).all.each.with_index do |course,i|
         has_runner = false
         last_station = 'hahaha'
+        sort_string = (options[:official] ? 'ct_distance, ct_checkin_time DESC' : 'current_dist, ct_checkin_time DESC')
         Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").
           where("line_groups.line_group_id = ?",group_id).
           where(course: course).
-          order('current_dist, ct_checkin_time DESC').uniq.each.with_index do |run,j|
+          order(sort_string).uniq.each.with_index do |run,j|
 
           #display course name
           resp += "*" + course.title + "*" if j == 0
@@ -460,7 +461,7 @@ module Dae
           run.ct_station = hash['progress']['station']
           run.ct_checkin_time = hash['progress']['time']
           run.ct_distance = hash['progress']['distance']
-          if (run.current_dist.nil? || run.current_dist < hash['progress']['distance'])
+          if (run.current_dist.nil? || run.current_dist < hash['progress']['distance'] || hash['progress']['state'] == 'DNF')
             run.current_dist = hash['progress']['distance']
             run.update_station(hash['progress']['distance'])
           end
