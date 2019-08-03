@@ -401,7 +401,7 @@ module Dae
           #display station name
           if (options[:official])
             resp += "\n" if j == 0
-            resp += "#{run.athlete.line_name}: #{run.chilling_trail_status}\n"
+            resp += "_#{run.athlete.proper_name}:_ #{run.chilling_trail_status}\n"
           else
             if last_station != run.station
               last_station = run.station
@@ -412,7 +412,7 @@ module Dae
               end
             end
 
-            resp += "#{run.athlete.line_name} (#{sprintf("%.1f",run.current_dist || 0)}km)\n"
+            resp += "#{run.athlete.proper_name} (#{sprintf("%.1f",run.current_dist || 0)}km)\n"
           end
           has_runner = true
         end
@@ -463,6 +463,7 @@ module Dae
           run.ct_distance = hash['progress']['distance']
           if (run.current_dist.nil? || run.current_dist < hash['progress']['distance'])
             run.current_dist = hash['progress']['distance']
+            run.update_station(hash['progress']['distance'])
           end
         end
 
