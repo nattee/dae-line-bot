@@ -393,7 +393,7 @@ module Dae
         Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").
           where("line_groups.line_group_id = ?",group_id).
           where(course: course).
-          order('current_dist, ct_checkin_time').uniq.each.with_index do |run,j|
+          order('current_dist, ct_checkin_time DESC').uniq.each.with_index do |run,j|
 
           #display course name
           resp += "*" + course.title + "*" if j == 0
@@ -426,8 +426,7 @@ module Dae
 
     def call_chilling_trail_all_runner(group_id)
       Run.joins(:athlete).joins("INNER JOIN line_groups ON athletes.line_id = line_groups.line_id").
-        where("line_groups.line_group_id = ?",group_id).
-        order('current_dist').uniq.each.with_index do |run,j|
+        where("line_groups.line_group_id = ?",group_id).uniq.each.with_index do |run,j|
 
         chilling_trail_update(run.bib)
       end
