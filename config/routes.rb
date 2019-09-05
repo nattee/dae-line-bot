@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :direct_responses
   resources :line_groups
   resources :plans
   resources :stations

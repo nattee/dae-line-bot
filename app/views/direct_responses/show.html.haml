@@ -1,0 +1,15 @@
+%p#notice= notice
+
+%p
+  %b Tag:
+  = @direct_response.tag
+%p
+  %b Text:
+  = @direct_response.text
+%p
+  %b Response:
+  = @direct_response.response
+
+= link_to 'Edit', edit_direct_response_path(@direct_response)
+\|
+= link_to 'Back', direct_responses_path

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_08_02_132424) do
+ActiveRecord::Schema.define(version: 2019_09_05_170741) do
 
   create_table "athletes", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin", force: :cascade do |t|
     t.string "name"
@@ -42,6 +42,14 @@ ActiveRecord::Schema.define(version: 2019_08_02_132424) do
     t.datetime "updated_at", null: false
     t.float "gain"
     t.index ["race_id"], name: "index_courses_on_race_id"
+  end
+
+  create_table "direct_responses", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", force: :cascade do |t|
+    t.integer "tag"
+    t.string "text"
+    t.string "response"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "line_groups", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|

@@ -33,7 +33,8 @@ class ApiController < ApplicationController
         case event.type
         when Line::Bot::Event::MessageType::Text
           #Dae::Running.new.respond_to(event,@client)
-          Dae::RunningCM62019.new.respond_to(event,@client)
+          #Dae::RunningCM62019.new.respond_to(event,@client)
+          Dae::KLMKLM.new.respond_to(event,@client)
         when Line::Bot::Event::MessageType::Image, Line::Bot::Event::MessageType::Video
           #response = @client.get_message_content(event.message['id'])
           #f = Tempfile.open("content")
@@ -46,6 +47,7 @@ class ApiController < ApplicationController
 
     render plain: "OK", content_type: 'text/plain'
   end
+
 
   private
   def setup_client

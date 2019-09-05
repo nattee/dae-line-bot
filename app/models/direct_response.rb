@@ -1,0 +1,2 @@
+class DirectResponse < ApplicationRecord
+end

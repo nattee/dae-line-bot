@@ -1,0 +1,2 @@
+module DirectResponsesHelper
+end
