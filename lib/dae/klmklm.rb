@@ -27,21 +27,22 @@ module Dae
         text: ''
       }
 
-      text = @event.message['text']
+      text = @event.message['text'].strip
       return true if special_command(text)
 
-      case text.strip
-      when /^([0-9][0-9][0-9])$/i
-        res = DirectResponse.where(text: $1).first
-        if res
+      res = DirectResponse.where(text: text).first
+      if res
+        if res.msg_type == 0
           resp = res.response
-          @message[:text] = "น้อง #{$1} ฝากดูแล #{resp} ครับ!!!"
-          return true
-	else
-          @message[:text] = "ห้อง #{$1} มีที่ไหนครับ! สัส! กวนตรีนได้ แต่แยกขยะด้วยนะครับ!!! "
-	  return true
+          @message[:text] = resp
+        elsif res.msg_type == 1
+          file = res.response
+          preview = File.basename(file, ".*") + '_preview' + File.extname(file)
+          @message[:type] = "image"
+          @message[:originalContentUrl] = "https://line.nattee.net/klmklm/#{file}"
+          @message[:previewImageUrl] = "https://line.nattee.net/klmklm/#{preview}"
         end
-        return false
+        return true
       else
         return funny_response(text)
       end
@@ -68,13 +69,6 @@ module Dae
       case text.strip
       when /^หิวมั้ย$/
         @message[:text] = 'หิวมาก พร้อมโหลด'
-        return true
-      when /^@{0,1}ฝากแด้$/
-        if client_is_friend?
-          resp = ['คร้าบบบบ???', 'อิหยัง?', 'มีไรให้รับใช้ครับ']
-          @message[:text] = resp.sample + " พี่ @#{@sender_name}"
-        else
-        end
         return true
       when /^ควย/
         @message[:text] = 'หยาบคายได้ครับ แต่แยกขยะด้วยนะครับ!!! ขอบควยมาก ๆ ครับ!!!'
