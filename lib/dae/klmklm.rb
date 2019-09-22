@@ -35,8 +35,11 @@ module Dae
         res = DirectResponse.where(text: $1).first
         if res
           resp = res.response
-          @message[:text] = "ห้อง #{$1} ฝากดูแล #{resp} ครับ!!!"
+          @message[:text] = "น้อง #{$1} ฝากดูแล #{resp} ครับ!!!"
           return true
+	else
+          @message[:text] = "ห้อง #{$1} มีที่ไหนครับ! สัส! กวนตรีนได้ แต่แยกขยะด้วยนะครับ!!! "
+	  return true
         end
         return false
       else
@@ -72,6 +75,12 @@ module Dae
           @message[:text] = resp.sample + " พี่ @#{@sender_name}"
         else
         end
+        return true
+      when /^ควย/
+        @message[:text] = 'หยาบคายได้ครับ แต่แยกขยะด้วยนะครับ!!! ขอบควยมาก ๆ ครับ!!!'
+        return true
+      when /^ครวย/
+        @message[:text] = 'หยาบคายได้ครับ แต่แยกขยะด้วยนะครับ!!! ขอบครวยมาก ๆ ครับ!!!'
         return true
       end
       return false
