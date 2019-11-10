@@ -2,8 +2,9 @@ require 'rest-client'
 require 'json'
 
 WEB_URL = ''
-PLAN_URL = 'https://plan.chillingtrail.run/PYT_2019.php'
+PLAN_URL = 'https://plan.chillingtrail.run/plan.php?race=pyt&year=2019'
 RACE_URL = 'https://race.chillingtrail.run/2019/pyt/r-json'
+RACE_ID = 2
 
 module Dae
   class RunningPYT2019
@@ -36,14 +37,14 @@ module Dae
 
       case text.strip
       when /^ลงทะเบียน pyt(15|30|50|70|100|120|166) bib (\w{,10}) แผน (([0-9]+\.?[0-9]*))/i
-        return register($1,$2,$3)
+        return register("pyt#{$1}",$2,$3)
       when /^ลงทะเบียน pyt(15|30|50|70|100|120|166) bib (\w{,10})/i
-        return register($1,$2)
-      when /^ยกเลิกลงทะเบียน (CM[1-6])/i
-        return unregister($1)
+        return register("pyt#{$1}",$2)
+      when /^ยกเลิกลงทะเบียน pyt(15|30|50|70|100|120|166)/i
+        return unregister("pyt#{$1}")
       when /^update pyt/i
         return show_update
-      when /^progress pyt/i
+      when /^progress unofficial/i
         if @event['source']['type'] == 'group'
           group_id = @event['source']['groupId']
           #group_id = "Cbcb6e099aaf6a56a88cb1346f362e778"
@@ -53,24 +54,20 @@ module Dae
           @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
         end
         return true
-      when /^progress checkin/i
-        if @event['source']['type'] == 'group'
-          group_id = @event['source']['groupId']
-          #group_id = "Cbcb6e099aaf6a56a88cb1346f362e778"
-          call_chilling_trail_all_runner(group_id)
-          return progress_text(group_id,{official: true})
-        else
-          @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
-        end
+      when /^progress pyt/i
+        group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
+        call_chilling_trail_all_runner(group_id)
+        return progress_text(group_id,{official: true})
         return true
       when /^progress add bib (\w{,10})/
-        if @event['source']['type'] == 'group'
-          group_id = @event['source']['groupId']
-          return add_bib_to_group($1,group_id)
-        else
-          @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
-        end
-        return true
+        #if @event['source']['type'] == 'group'
+        #  group_id = @event['source']['groupId']
+        #  return add_bib_to_group($1,group_id)
+        #else
+        #  @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
+        #end
+        group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
+        return add_bib_to_group($1,group_id)
       when /^([0-9\.]+)\s*(km|โล|k)$/i
         my_dist = $1.to_f
         return dist_update(my_dist)
@@ -118,11 +115,11 @@ module Dae
         run = Run.find_or_create_by(athlete: runner,course: course)
         run.bib = bib
         run.save
-        @message[:text] = "OK พี่#{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
+        @message[:text] = "OK พี่ #{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
 
         #add user to group, if this is group message
         if @event['source']['type'] == 'group'
-          LineGroup.find_or_create_by(line_group_id: @event['source']['groupId'], line_id: @event['source']['userId'], race_id: 1)
+          LineGroup.find_or_create_by(line_group_id: @event['source']['groupId'], line_id: @event['source']['userId'], race_id: RACE_ID)
         end
 
         #set plans
@@ -165,7 +162,7 @@ module Dae
     end
 
     def add_bib_to_group(bib,group_id)
-      run = Run.where(bib: bib).first
+      run = Run.joins(course: :race).where("race_id = ?",RACE_ID).where(bib: bib).first
 
       unless run
         @message[:text] = "bib #{bib} ยังไม่ได้ลงทะเบียนครับ ขอให้คนนั้นลงทะเบียนก่อน โดยทำงี้ครับ\n\n 1. add ผมเป็นเพื่อน \n\n 2. พิมพ์ \"ลงทะเบียน pytxxx bib yyyy แผน zz\" เช่น \n\nลงทะเบียน pyt166 bib 6124 แผน 36 \n\nเพื่อบอกผมว่า จะวิ่งงานไหน บิบอะไร ด้วยแผนกี่ ชม." 
@@ -173,7 +170,7 @@ module Dae
       end
 
       #add user to group, if this is group message
-      LineGroup.find_or_create_by(line_group_id: group_id, line_id: run.athlete.line_id, race_id: 1)
+      LineGroup.find_or_create_by(line_group_id: group_id, line_id: run.athlete.line_id, race_id: RACE_ID)
       @message[:text] = "รับทราบ เพิ่ม บิบหมายเลข #{run.bib} ลงงาน #{run.course.title} เรียบร้อย\n\n (ดูผลโดยพิมพ์ progress pyt)"
       return true
     end
@@ -256,7 +253,7 @@ module Dae
 
     def show_update
       resp = ""
-      Course.where(race_id: 1).all.each.with_index do |course,i|
+      Course.where(race_id: RACE_ID).all.each.with_index do |course,i|
         has_runner = false
         Run.where(course: course).each.with_index do |run,j|
           resp += course.title + ":\n" if j == 0
@@ -391,7 +388,7 @@ module Dae
     def progress_text(group_id,options = {})
       resp = ""
       resp = "ข้อมูล check in ล่าสุดจาก Chilling Trail\n" if options[:official]
-      Course.where(race_id: 1).all.each.with_index do |course,i|
+      Course.where(race_id: RACE_ID).all.each.with_index do |course,i|
         has_runner = false
         last_station = 'hahaha'
         sort_string = (options[:official] ? 'ct_distance, ct_checkin_time DESC' : 'current_dist, ct_checkin_time DESC')
@@ -435,7 +432,7 @@ module Dae
 
         chilling_trail_update(run.bib)
       end
-      #Course.where(race_id: 1).all.each.with_index do |course,i|
+      #Course.where(race_id: RACE_ID).all.each.with_index do |course,i|
       #  Run.where(course: course).order('current_dist').each.with_index do |run,j|
       #    chilling_trail_update(run.bib)
       #  end
@@ -479,7 +476,9 @@ module Dae
 
     def chilling_trail_update_plan(athlete,course,target)
       begin
-        response = RestClient.get("#{PLAN_URL}?distance=#{course.title}&target=#{target}&output=json")
+        url = "#{PLAN_URL}&distance=#{course.title}&target=#{target}&output=json"
+        puts url
+        response = RestClient.get(url)
         array = JSON.parse(response)
 
         return nil unless array
@@ -500,7 +499,7 @@ module Dae
         end
 
         #cache plan picture
-        pic_response = RestClient.get("#{PLAN_URL}?distance=#{course.title}&target=#{target}")
+        pic_response = RestClient.get("#{PLAN_URL}&distance=#{course.title}&target=#{target}")
         if pic_response.code == 200
           dir = Rails.root.join('public','pyt-2019')
           unless dir.join("PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg").exist?

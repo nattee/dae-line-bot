@@ -3,6 +3,7 @@ class Athlete < ApplicationRecord
 
   def proper_name
     return name unless name.nil?
-    return line_name
+    return line_name unless line_name.nil?
+    return bib
   end
 end
