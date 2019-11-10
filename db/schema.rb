@@ -44,7 +44,7 @@ ActiveRecord::Schema.define(version: 2019_09_22_032919) do
     t.index ["race_id"], name: "index_courses_on_race_id"
   end
 
-  create_table "direct_responses", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "direct_responses", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.integer "tag"
     t.string "text"
     t.string "response"
