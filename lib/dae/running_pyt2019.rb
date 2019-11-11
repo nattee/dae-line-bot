@@ -36,11 +36,11 @@ module Dae
       return true if special_command(text)
 
       case text.strip
-      when /^ลงทะเบียน pyt(15|30|50|70|100|120|166) bib (\w{,10}) แผน (([0-9]+\.?[0-9]*))/i
+      when /^ลงทะเบียน pyt ?(15|30|50|70|100|120|166) bib ?(\w{,10}) แผน ?(([0-9]+\.?[0-9]*))/i
         return register("pyt#{$1}",$2,$3)
-      when /^ลงทะเบียน pyt(15|30|50|70|100|120|166) bib (\w{,10})/i
+      when /^ลงทะเบียน pyt ?(15|30|50|70|100|120|166) bib ?(\w{,10})/i
         return register("pyt#{$1}",$2)
-      when /^ยกเลิกลงทะเบียน pyt(15|30|50|70|100|120|166)/i
+      when /^ยกเลิกลงทะเบียน pyt ?(15|30|50|70|100|120|166)/i
         return unregister("pyt#{$1}")
       when /^update pyt/i
         return show_update
@@ -52,7 +52,7 @@ module Dae
         group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
         call_chilling_trail_all_runner(group_id)
         return progress_text(group_id,{official: true})
-      when /^progress add bib (\w{,10})/
+      when /^progress add bib ?(\w{,10})/
         #if @event['source']['type'] == 'group'
         #  group_id = @event['source']['groupId']
         #  return add_bib_to_group($1,group_id)
@@ -162,8 +162,34 @@ module Dae
       run = Run.joins(course: :race).where("race_id = ?",RACE_ID).where(bib: bib).first
 
       unless run
-        @message[:text] = "bib #{bib} ยังไม่ได้ลงทะเบียนครับ ขอให้คนนั้นลงทะเบียนก่อน โดยทำงี้ครับ\n\n 1. add ผมเป็นเพื่อน \n\n 2. พิมพ์ \"ลงทะเบียน pytxxx bib yyyy แผน zz\" เช่น \n\nลงทะเบียน pyt166 bib 6124 แผน 36 \n\nเพื่อบอกผมว่า จะวิ่งงานไหน บิบอะไร ด้วยแผนกี่ ชม." 
-        return true
+        #@message[:text] = "bib #{bib} ยังไม่ได้ลงทะเบียนครับ ขอให้คนนั้นลงทะเบียนก่อน โดยทำงี้ครับ\n\n 1. add ผมเป็นเพื่อน \n\n 2. พิมพ์ \"ลงทะเบียน pytxxx bib yyyy แผน zz\" เช่น \n\nลงทะเบียน pyt166 bib 6124 แผน 36 \n\nเพื่อบอกผมว่า จะวิ่งงานไหน บิบอะไร ด้วยแผนกี่ ชม." 
+        #return true
+
+	if bib.to_i < 999
+          course = Course.where(title: 'PYT166',race: RACE_ID).first
+	elsif bib[0] == '9'
+          course = Course.where(title: 'PYT120',race: RACE_ID).first
+	elsif bib[0] == '8'
+          course = Course.where(title: 'PYT100',race: RACE_ID).first
+	elsif bib[0] == '7'
+          course = Course.where(title: 'PYT70',race: RACE_ID).first
+	elsif bib[0] == '5'
+          course = Course.where(title: 'NPT50',race: RACE_ID).first
+	elsif bib[0] == '3'
+          course = Course.where(title: 'PNK30',race: RACE_ID).first
+	elsif bib[0] == '1'
+          course = Course.where(title: 'WFL15',race: RACE_ID).first
+	end
+        unless course
+          @message[:text] = "#{sender_name} ผมไม่รู้จักงาน #{course_name}"
+          return true
+        end
+        runner = Athlete.new
+        runner.line_name = bib
+        runner.save
+        run = Run.find_or_create_by(athlete: runner,course: course)
+        run.bib = bib
+        run.save
       end
 
       #add user to group, if this is group message
@@ -473,7 +499,7 @@ module Dae
 
     def chilling_trail_update_plan(athlete,course,target)
       begin
-        url = "#{PLAN_URL}&distance=#{course.title}&target=#{target}&output=json"
+	url = "#{PLAN_URL}&distance=#{course.distance.to_i}&target=#{target}&output=json"
         puts url
         response = RestClient.get(url)
         array = JSON.parse(response)
@@ -496,7 +522,7 @@ module Dae
         end
 
         #cache plan picture
-        pic_response = RestClient.get("#{PLAN_URL}&distance=#{course.title}&target=#{target}")
+	pic_response = RestClient.get("#{PLAN_URL}&distance=#{course.distance.to_i}&target=#{target}")
         if pic_response.code == 200
           dir = Rails.root.join('public','pyt-2019')
           unless dir.join("PLAN-#{course.title}-#{sprintf("%.02f",target)}.jpg").exist?

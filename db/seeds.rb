@@ -81,9 +81,13 @@ Station.find_or_create_by(course: cm6_cm1, distance:   19.7, code: 'FINISH', sho
 
 #pyt 2019
 pyt_2019 = Race.find_or_create_by(title: 'PYT 2019')
-(pyt166 = Course.find_or_create_by(race: pyt_2019, title: 'PYT166')).update(distance:172.0, start: '2019-11-15 10:00 +0700', stop: '2019-11-17 10:30 +0700', gain: 7740)
-(pyt120 = Course.find_or_create_by(race: pyt_2019, title: 'PYT120')).update(distance: 43.7, start: '2019-11-15 09:30 +0700', stop: '2019-11-16 20:30 +0700', gain: 5380)
-(pyt100 = Course.find_or_create_by(race: pyt_2019, title: 'PYT100')).update(distance: 60.1, start: '2019-11-16 06:00 +0700', stop: '2019-11-17 10:30 +0700', gain: 4780)
+Run.joins(course: :race).where('courses.race_id = ?',pyt_2019.id).destroy_all
+Plan.joins(station: {course: :race}).where('courses.race_id = ?',pyt_2019.id).destroy_all
+Station.joins(course: :race).where('courses.race_id = ?',pyt_2019.id).destroy_all
+Course.where(race: pyt_2019).destroy_all
+(pyt166 = Course.find_or_create_by(race: pyt_2019, title: 'PYT166')).update(distance:166, start: '2019-11-15 10:00 +0700', stop: '2019-11-17 10:30 +0700', gain: 7740)
+(pyt120 = Course.find_or_create_by(race: pyt_2019, title: 'PYT120')).update(distance:120, start: '2019-11-15 09:30 +0700', stop: '2019-11-16 20:30 +0700', gain: 5380)
+(pyt100 = Course.find_or_create_by(race: pyt_2019, title: 'PYT100')).update(distance:100, start: '2019-11-16 06:00 +0700', stop: '2019-11-17 10:30 +0700', gain: 4780)
 
 Station.find_or_create_by(course: pyt166, distance:      0).update(code: 'START', shortname: 'FLORA', name: 'ฟลอร่า ครีค'       , cutoff: nil)
 Station.find_or_create_by(course: pyt166, distance:   11.8).update(code: 'A1'   , shortname: 'PNK', name: 'ผานกกก'            , cutoff: '2019-11-15 13:55 +07', ascent: 950, descent: 270)
