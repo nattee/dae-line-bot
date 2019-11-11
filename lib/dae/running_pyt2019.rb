@@ -45,20 +45,13 @@ module Dae
       when /^update pyt/i
         return show_update
       when /^progress unofficial/i
-        if @event['source']['type'] == 'group'
-          group_id = @event['source']['groupId']
-          #group_id = "Cbcb6e099aaf6a56a88cb1346f362e778"
-          call_chilling_trail_all_runner(group_id)
-          return progress_text(group_id)
-        else
-          @message[:text] = 'คำสั่งนี้ใช้ได้เฉพาะเวลาอยู่ในห้องเท่านั้นครับ'
-        end
-        return true
+        group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
+        call_chilling_trail_all_runner(group_id)
+        return progress_text(group_id,{official: false})
       when /^progress pyt/i
         group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
         call_chilling_trail_all_runner(group_id)
         return progress_text(group_id,{official: true})
-        return true
       when /^progress add bib (\w{,10})/
         #if @event['source']['type'] == 'group'
         #  group_id = @event['source']['groupId']
@@ -103,35 +96,39 @@ module Dae
     def register(course_name,bib,target = nil)
       course_name.upcase!
       if client_is_friend?
-        course = Course.where(title: course_name).first
-        unless course
-          @message[:text] = "#{@sender_name} ไม่รู้จักงาน #{course_name}"
-          return true
-        end
-
-        runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
-        runner.line_name = @sender_name
-        runner.save
-        run = Run.find_or_create_by(athlete: runner,course: course)
-        run.bib = bib
-        run.save
-        @message[:text] = "OK พี่ #{@sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
-
-        #add user to group, if this is group message
-        if @event['source']['type'] == 'group'
-          LineGroup.find_or_create_by(line_group_id: @event['source']['groupId'], line_id: @event['source']['userId'], race_id: RACE_ID)
-        end
-
-        #set plans
-        run.plans.destroy_all
-        if target
-          @message[:text] += "\n\nแผน #{target} ชั่วโมง\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\n#{PLAN_URL}"
-          run.plan_hour = target
-          run.save
-          chilling_trail_update_plan(runner,course,target)
-        end
+        sender_name = @sender_name
       else
-        #response with default non-friend
+        sender_name = 'คุณหมายเลข'+bib
+      end
+
+      course = Course.where(title: course_name).first
+      unless course
+        @message[:text] = "#{sender_name} ผมไม่รู้จักงาน #{course_name}"
+        return true
+      end
+
+      runner = Athlete.find_or_create_by(line_id: @event['source']['userId'])
+      runner.line_name = sender_name
+      runner.save
+      run = Run.find_or_create_by(athlete: runner,course: course)
+      run.bib = bib
+      run.save
+      @message[:text] = "OK พี่ #{sender_name} จะวิ่งงาน #{course.title} ระยะ #{course.distance}km ด้วยหมายเลข #{bib} #{encourage_text}"
+
+      #add user to group, if this is group message
+      if @event['source']['type'] == 'group'
+        LineGroup.find_or_create_by(line_group_id: @event['source']['groupId'], line_id: @event['source']['userId'], race_id: RACE_ID)
+      else
+        LineGroup.find_or_create_by(line_group_id: @event['source']['userId'], line_id: @event['source']['userId'], race_id: RACE_ID)
+      end
+
+      #set plans
+      run.plans.destroy_all
+      if target
+        @message[:text] += "\n\nแผน #{target} ชั่วโมง\n(กราบขอบพระคุณข้อมูลจาก Chilling Trail)\n#{PLAN_URL}"
+        run.plan_hour = target
+        run.save
+        chilling_trail_update_plan(runner,course,target)
       end
       return true
     end
