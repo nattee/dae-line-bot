@@ -15,9 +15,9 @@
   %tbody
     - @runs.each do |run|
       %tr
-        %td= run.athlete
+        %td= run.athlete.proper_name
         %td= run.bib
-        %td= run.course
+        %td= run.course.title
         %td= run.current_dist
         %td= run.status
         %td= link_to 'Show', run

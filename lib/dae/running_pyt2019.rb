@@ -48,7 +48,7 @@ module Dae
         group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
         call_chilling_trail_all_runner(group_id)
         return progress_text(group_id,{official: false})
-      when /^progress pyt/i
+      when /^progress/i
         group_id = (@event['source']['type'] == 'group') ? @event['source']['groupId'] : @event['source']['userId']
         call_chilling_trail_all_runner(group_id)
         return progress_text(group_id,{official: true})
@@ -375,8 +375,8 @@ module Dae
         end
       end
 
-      run.station = station_code
-      run.current_dist = dist
+      #run.station = station_code
+      #run.current_dist = dist
       run.save
 
       if next_cutoff
@@ -424,7 +424,7 @@ module Dae
           resp += "*" + course.title + "*" if j == 0
 
           #display station name
-          if (options[:official])
+          if (options[:official] == true)
             resp += "\n" if j == 0
             resp += "_#{run.athlete.proper_name}:_ #{run.chilling_trail_status}\n"
           else
@@ -466,11 +466,13 @@ module Dae
       #find the ahtlete
       run = Run.where(bib: bib).first
 
-      #quit if this bib was updated in the last 10 secs.
+      #quit if this bib was updated in the last 60 secs.
       return nil unless run && (run.last_online_call_timestamp.nil? || run.last_online_call_timestamp < 60.second.ago)
 
       begin
-        response = RestClient.get("#{RACE_URL}/#{bib}")
+	url = "#{RACE_URL}/#{bib}"
+	#puts url
+        response = RestClient.get(url)
         hash = JSON.parse(response)
 
         #if bib not found
@@ -500,7 +502,7 @@ module Dae
     def chilling_trail_update_plan(athlete,course,target)
       begin
 	url = "#{PLAN_URL}&distance=#{course.distance.to_i}&target=#{target}&output=json"
-        puts url
+        #puts url
         response = RestClient.get(url)
         array = JSON.parse(response)
 
